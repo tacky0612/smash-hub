@@ -16,6 +16,7 @@ Smash-hub の重要な設計判断を記録します。運営者や開発者が�
 | [0001](0001-record-architecture-decisions.md) | 設計判断を ADR で記録する | Accepted |
 | [0002](0002-external-authentication-providers.md) | 認証に外部プロバイダー（Discord / Google）を使い、個人情報を保持しない | Accepted |
 | [0003](0003-license-agpl-3.0.md) | ライセンスを AGPL-3.0 とする | Accepted |
+| [0004](0004-rating-formula.md) | レーティングの計算式にスマメイト式を採用する | Accepted |
 
 ## 予定している ADR
 
@@ -25,4 +26,3 @@ Smash-hub の重要な設計判断を記録します。運営者や開発者が�
 - データストアの選定
 - アカウント ID の方式
 - 連合プロトコルの方式（独自 / ActivityPub / AT Protocol）
-- レーティングアルゴリズムとパラメータ
