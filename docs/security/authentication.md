@@ -1,6 +1,6 @@
 # 認証
 
-> ステータス: **Draft**。プロバイダーの選定は [ADR 0002](../adr/0002-external-authentication-providers.md) で提案中です。
+> ステータス: **Draft**。プロバイダーの選定は [ADR 0002](../adr/0002-external-authentication-providers.md) で決定済みです。
 
 ## 1. 方針
 

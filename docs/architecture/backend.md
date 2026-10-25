@@ -93,7 +93,7 @@ flowchart LR
 | モジュール | 主な集約 | 主なユースケース | 発行するイベント |
 |---|---|---|---|
 | `account` | `Account`, `ExternalIdentity`（識別子ハッシュ）, `Session` | 外部プロバイダーでのログイン、登録、プロバイダーの紐づけ、プロフィール編集、鍵管理、エクスポート、移行、削除 | `AccountRegistered`, `AccountMoved`, `AccountPseudonymized` |
-| `matchmaking` | `MatchRequest`（対戦募集）, `MatchingQueue`, `MatchmakingPreference`, `StageBanList`, `BlockList` | 募集作成、応募、キャンセル、自動マッチング、マッチング条件・拒否ステージ・スイッチ・ブロックの設定 | `MatchMade` |
+| `matchmaking` | `MatchRequest`（対戦募集）, `MatchingQueue`, `MatchmakingPreference`, `StageBanList`, `BlockList` | 対戦相手を探す（募集作成・自動マッチング）、キャンセル、マッチング条件・拒否ステージ・スイッチ・ブロックの設定 | `MatchMade` |
 | `match` | `Match`（対戦） | 対戦開始、ゲームの記録（ステージ・ファイター）、結果報告（両者）、期限切れ処理、無効化 | `MatchConfirmed`, `MatchCancelled`, `MatchExpired`, `MatchVoided` |
 | `rating` | `RatingLedger`, `Season` | レート再計算、ランキング取得、レート履歴取得 | `RatingUpdated` |
 | `federation` | `Peer`（連合先）, `LogEntry`, `FederationPolicy` | ログ追記、ログ提供、ログ取り込み・検証、連合先管理 | `RemoteEntryImported` |

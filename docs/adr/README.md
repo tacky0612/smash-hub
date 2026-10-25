@@ -14,7 +14,7 @@ Smash-hub の重要な設計判断を記録します。運営者や開発者が�
 | 番号 | タイトル | ステータス |
 |---|---|---|
 | [0001](0001-record-architecture-decisions.md) | 設計判断を ADR で記録する | Accepted |
-| [0002](0002-external-authentication-providers.md) | 認証に外部プロバイダー（Discord / Google）を使い、個人情報を保持しない | Proposed |
+| [0002](0002-external-authentication-providers.md) | 認証に外部プロバイダー（Discord / Google）を使い、個人情報を保持しない | Accepted |
 | [0003](0003-license-agpl-3.0.md) | ライセンスを AGPL-3.0 とする | Accepted |
 
 ## 予定している ADR

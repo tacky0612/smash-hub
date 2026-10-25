@@ -51,7 +51,7 @@ Smash-hub ならではの事情から、次の基準を重視します。
 ### 2.4 その他
 
 - リアルタイム通知: WebSocket / Server-Sent Events
-- 認証: Discord（OAuth 2.0）/ Google（OpenID Connect）を直接利用（[ADR 0002](adr/0002-external-authentication-providers.md) で提案中）
+- 認証: Discord（OAuth 2.0）/ Google（OpenID Connect）を直接利用（[ADR 0002](adr/0002-external-authentication-providers.md) で決定済み）
 - 署名: Ed25519
 - 正規化: JSON Canonicalization Scheme (RFC 8785) / CBOR (deterministic encoding)
 - デプロイ: コンテナイメージ（Docker Compose で1コマンド起動）
