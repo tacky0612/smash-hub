@@ -1,0 +1,28 @@
+# Architecture Decision Records (ADR)
+
+Smash-hub の重要な設計判断を記録します。運営者や開発者が入れ替わっても「なぜそうなっているのか」を追えるようにするためです。
+
+## 書き方
+
+1. [`0000-template.md`](0000-template.md) をコピーし、`NNNN-短いタイトル.md` として作成する（番号は連番）。
+2. ステータスを `Proposed` にして PR を出す。
+3. レビュー・議論を経てマージする際に `Accepted` にする。
+4. 後から判断を変える場合は、元の ADR を書き換えず、新しい ADR を作って元の ADR を `Superseded by NNNN` にする。
+
+## 一覧
+
+| 番号 | タイトル | ステータス |
+|---|---|---|
+| [0001](0001-record-architecture-decisions.md) | 設計判断を ADR で記録する | Accepted |
+| [0002](0002-external-authentication-providers.md) | 認証に外部プロバイダー（Discord / Google）を使い、個人情報を保持しない | Proposed |
+| [0003](0003-license-agpl-3.0.md) | ライセンスを AGPL-3.0 とする | Accepted |
+
+## 予定している ADR
+
+- 技術者でない運営者向けのデプロイ方式
+- バックエンドの技術選定
+- フロントエンドの技術選定
+- データストアの選定
+- アカウント ID の方式
+- 連合プロトコルの方式（独自 / ActivityPub / AT Protocol）
+- レーティングアルゴリズムとパラメータ
