@@ -1,34 +1,21 @@
 /* Smash-hub 独自のデザイン。公式の意匠には寄せない（docs/policy.md）。 */
 :root {
-  --bg: #f4f6fa;
+  /* 白と赤を基調にしたライトテーマのみ（OS のダークモード設定には追従しない） */
+  --bg: #ffffff;
   --surface: #ffffff;
-  --text: #1c2230;
-  --muted: #5d6779;
-  --border: #d9dee8;
-  --accent: #2563eb;
+  --subtle: #fdf1f2;
+  --text: #1f1f1f;
+  --muted: #666666;
+  --border: #ebd9db;
+  --accent: #d7263d;
+  --accent-hover: #b81d31;
   --accent-text: #ffffff;
-  --success: #15803d;
+  --success: #1f7a3a;
   --warning: #b45309;
-  --danger: #b91c1c;
+  --danger: #a1121f;
   color-scheme: light;
   font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
   line-height: 1.6;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #11151d;
-    --surface: #1a202b;
-    --text: #e7ebf2;
-    --muted: #9aa4b5;
-    --border: #2c3442;
-    --accent: #60a5fa;
-    --accent-text: #0b1220;
-    --success: #4ade80;
-    --warning: #fbbf24;
-    --danger: #f87171;
-    color-scheme: dark;
-  }
 }
 
 * { box-sizing: border-box; }
@@ -41,17 +28,18 @@ a { color: var(--accent); }
 
 .header {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
-  padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 12px 16px; background: var(--accent); color: var(--accent-text);
 }
-.brand { font-weight: 700; font-size: 1.2rem; text-decoration: none; color: var(--text); }
+.brand { font-weight: 800; font-size: 1.25rem; letter-spacing: 0.02em; text-decoration: none; color: var(--accent-text); }
 .nav { display: flex; flex-wrap: wrap; gap: 4px; }
-.nav a { padding: 6px 10px; border-radius: 6px; text-decoration: none; color: var(--muted); }
-.nav a.active { color: var(--text); background: var(--bg); font-weight: 600; }
+.nav a { padding: 6px 10px; border-radius: 6px; text-decoration: none; color: var(--accent-text); opacity: 0.85; }
+.nav a:hover { opacity: 1; }
+.nav a.active { opacity: 1; background: rgba(255, 255, 255, 0.2); font-weight: 700; }
 
-.footer { padding: 16px; font-size: 0.8rem; color: var(--muted); text-align: center; border-top: 1px solid var(--border); }
+.footer { padding: 16px; font-size: 0.8rem; color: var(--muted); text-align: center; background: var(--subtle); border-top: 3px solid var(--accent); }
 .footer p { margin: 4px auto; max-width: 720px; }
 
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-top: 4px solid var(--accent); border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(160, 20, 40, 0.06); }
 .card.narrow { max-width: 440px; margin-left: auto; margin-right: auto; }
 .card h1 { margin: 0 0 8px; font-size: 1.4rem; }
 .card h2 { margin: 0 0 12px; font-size: 1.1rem; }
@@ -65,21 +53,24 @@ label { display: block; margin-bottom: 12px; font-weight: 600; font-size: 0.95re
 label.checkbox { display: flex; gap: 8px; align-items: flex-start; font-weight: 400; }
 input, select {
   display: block; width: 100%; margin-top: 4px; padding: 10px 12px; font: inherit;
-  color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
 }
+input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
 label.checkbox input { width: auto; margin-top: 5px; }
 
 .button {
   display: inline-block; padding: 10px 16px; font: inherit; font-weight: 600; text-align: center; text-decoration: none;
-  color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+  color: var(--accent); background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; cursor: pointer;
 }
+.button:hover { background: var(--subtle); }
 .button.primary { color: var(--accent-text); background: var(--accent); border-color: var(--accent); }
+.button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 .button.block { display: block; width: 100%; }
-.button.selected { outline: 3px solid var(--accent); outline-offset: 1px; }
+.button.selected { outline: 3px solid var(--accent-hover); outline-offset: 2px; }
 .button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .dev-login { margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--border); }
-.rating strong { font-size: 2rem; margin: 0 8px; }
+.rating strong { font-size: 2rem; margin: 0 8px; color: var(--accent); }
 .rating .muted { margin-left: 8px; }
 
 .waiting { text-align: center; }
@@ -88,11 +79,11 @@ label.checkbox input { width: auto; margin-top: 5px; }
 @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
 
 .versus { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; }
-.vs { font-weight: 800; color: var(--muted); }
+.vs { font-weight: 800; color: var(--accent); }
 .player-box { flex: 1 1 200px; display: flex; flex-direction: column; gap: 2px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; }
 .player-name { font-weight: 700; font-size: 1.1rem; }
 
-.notice { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--bg); border-left: 4px solid var(--muted); }
+.notice { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--subtle); border-left: 4px solid var(--muted); }
 .notice.success { border-left-color: var(--success); }
 .notice.warning { border-left-color: var(--warning); }
 
@@ -109,7 +100,7 @@ label.checkbox input { width: auto; margin-top: 5px; }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 8px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
-th { color: var(--muted); font-weight: 600; font-size: 0.85rem; }
+th { color: var(--accent); font-weight: 700; font-size: 0.85rem; border-bottom: 2px solid var(--accent); }
 
 .history { list-style: none; padding: 0; margin: 0; }
 .history li { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--border); }
