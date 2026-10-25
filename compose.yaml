@@ -1,0 +1,65 @@
+# ローカルでの動作確認用。本番の構成ではありません。
+# 起動: make up（http://localhost:8080）
+name: smash-hub
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: smashhub
+      POSTGRES_PASSWORD: smashhub
+      POSTGRES_DB: smashhub
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smashhub -d smashhub"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  backend:
+    build: ./backend
+    environment:
+      APP_ENV: development
+      HTTP_ADDR: ":8081"
+      DATABASE_URL: postgres://smashhub:smashhub@db:5432/smashhub?sslmode=disable
+      PUBLIC_BASE_URL: http://localhost:8080
+      COOKIE_SECURE: "false"
+      # ローカル専用の値。本番では必ずランダムな値を別途設定する
+      IDENTIFIER_PEPPER: local-development-pepper-not-for-production
+      DEV_LOGIN_ENABLED: "true"
+      RANKING_MIN_MATCHES: ${RANKING_MIN_MATCHES:-1}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
+      DISCORD_REDIRECT_URL: ${DISCORD_REDIRECT_URL:-}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+  # 結合テスト用の DB（make test-integration で使う）。データはメモリ上に置き、毎回捨てる
+  db-test:
+    profiles: ["test"]
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: smashhub_test
+    ports:
+      - "55432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d smashhub_test"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  db-data:

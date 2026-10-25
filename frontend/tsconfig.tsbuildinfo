@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/api.ts","./src/context.tsx","./src/main.tsx","./src/pages/fighterselect.tsx","./src/pages/homepage.tsx","./src/pages/loginpage.tsx","./src/pages/matchpage.tsx","./src/pages/playerpage.tsx","./src/pages/rankingpage.tsx","./src/pages/registerpage.tsx","./src/pages/settingspage.tsx"],"version":"5.9.3"}

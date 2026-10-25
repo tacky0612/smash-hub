@@ -39,9 +39,10 @@ flowchart LR
 - [x] ドキュメント整備（README・ビジョン・ポリシー・設計・ロードマップ・対戦ルール・レーティング）
 - [x] ライセンスの決定 → AGPL-3.0（[ADR 0003](adr/0003-license-agpl-3.0.md)）
 - [ ] 技術者でない運営者でもデプロイできる方式の議論と決定 → ADR（[議論資料](operations/easy-deployment.md)、[#1](https://github.com/tacky0612/smash-hub/issues/1)）。**技術選定の前提になるため先に行う**
-- [ ] フロントエンド・バックエンドの技術選定 → ADR（[技術選定](tech-selection.md)、[#2](https://github.com/tacky0612/smash-hub/issues/2)）
+- [x] フロントエンド・バックエンドの技術選定 → React（SPA）/ Go / PostgreSQL（[ADR 0005](adr/0005-tech-stack.md)、[#2](https://github.com/tacky0612/smash-hub/issues/2)）
 - [x] ドキュメントの CI（docs-check）
-- [ ] 開発環境のセットアップ手順、コードの CI（lint・テスト・依存ルールのチェック）
+- [x] 開発環境のセットアップ手順（Docker Compose）、コードの CI（gofmt・vet・単体テスト・結合テスト・フロントエンドのビルド）
+- [ ] 依存ルールの静的チェック（モジュール間の import 制約）
 - [x] Issue / PR テンプレート、ラベル、Discussion の整備
 - [x] 認証プロバイダーの決定（[ADR 0002](adr/0002-external-authentication-providers.md)）
 - [x] Private vulnerability reporting・secret scanning・ブランチ保護の有効化
@@ -56,10 +57,12 @@ flowchart LR
 
 ### 機能
 
+> 実装の進み具合は [backend/README.md の「実装状況」](../backend/README.md#実装状況) を参照してください。
+
 - [ ] Discord ログイン（OAuth 2.0 + PKCE、識別子ハッシュのみ保存）と登録（鍵ペアをサーバー側で生成・暗号化して保管）
 - [ ] Google ログイン（任意で有効化）、複数プロバイダーの紐づけ
 - [ ] セキュリティの基本対策（CSRF・CSP・レート制限・ログ保持期間）と[セキュリティポリシー](security/README.md)の適用
-- [ ] プロフィール（表示名・メインファイター等のテキスト情報）
+- [x] プロフィール（表示名・メインファイター等のテキスト情報）
 - [ ] 自動マッチング（「対戦相手を探す」。レート差・連戦・接続方法のマッチング条件）
 - [ ] [標準ルール](domain/match-rules.md)の進行（拒否ステージの表示、敗者のみのファイター変更、ゲームごとのステージ・ファイターの記録）
 - [ ] 対戦ルーム（ゲーム内の部屋情報の共有）
@@ -69,7 +72,8 @@ flowchart LR
 - [ ] 戦績・レート推移・ランキング
 - [ ] 自分の対戦履歴のエクスポート
 - [ ] 通報と、運営者による無効化・利用停止の最小限の管理画面
-- [ ] 非公式表示・ポリシー表示
+- [x] 非公式表示・ソースコードへのリンク（AGPL-3.0）
+- [ ] ポリシー・利用規約の表示
 
 ### 分散に向けた仕込み（この段階で必ずやる）
 

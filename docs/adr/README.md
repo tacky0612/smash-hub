@@ -17,12 +17,10 @@ Smash-hub の重要な設計判断を記録します。運営者や開発者が�
 | [0002](0002-external-authentication-providers.md) | 認証に外部プロバイダー（Discord / Google）を使い、個人情報を保持しない | Accepted |
 | [0003](0003-license-agpl-3.0.md) | ライセンスを AGPL-3.0 とする | Accepted |
 | [0004](0004-rating-formula.md) | レーティングの計算式にスマメイト式を採用する | Accepted |
+| [0005](0005-tech-stack.md) | フロントエンドを React（SPA）、バックエンドを Go、DB を PostgreSQL とする | Accepted |
 
 ## 予定している ADR
 
 - 技術者でない運営者向けのデプロイ方式
-- バックエンドの技術選定
-- フロントエンドの技術選定
-- データストアの選定
 - アカウント ID の方式
 - 連合プロトコルの方式（独自 / ActivityPub / AT Protocol）
