@@ -36,14 +36,16 @@ flowchart LR
 
 **ゴール: 人が集まり、議論と開発を始められる状態をつくる。**
 
-- [ ] ドキュメント整備（README・ビジョン・ポリシー・設計・ロードマップ）
+- [x] ドキュメント整備（README・ビジョン・ポリシー・設計・ロードマップ・対戦ルール・レーティング）
 - [x] ライセンスの決定 → AGPL-3.0（[ADR 0003](adr/0003-license-agpl-3.0.md)）
-- [ ] 技術者でない運営者でもデプロイできる方式の議論と決定 → ADR（[議論資料](operations/easy-deployment.md)）。**技術選定の前提になるため先に行う**
-- [ ] フロントエンド・バックエンドの技術選定 → ADR（[技術選定](tech-selection.md)）
-- [ ] 開発環境のセットアップ手順、CI（lint・テスト・依存ルールのチェック）
-- [ ] Issue / PR テンプレート、ラベル、Discussion の整備
+- [ ] 技術者でない運営者でもデプロイできる方式の議論と決定 → ADR（[議論資料](operations/easy-deployment.md)、[#1](https://github.com/tacky0612/smash-hub/issues/1)）。**技術選定の前提になるため先に行う**
+- [ ] フロントエンド・バックエンドの技術選定 → ADR（[技術選定](tech-selection.md)、[#2](https://github.com/tacky0612/smash-hub/issues/2)）
+- [x] ドキュメントの CI（docs-check）
+- [ ] 開発環境のセットアップ手順、コードの CI（lint・テスト・依存ルールのチェック）
+- [x] Issue / PR テンプレート、ラベル、Discussion の整備
 - [x] 認証プロバイダーの決定（[ADR 0002](adr/0002-external-authentication-providers.md)）
-- [ ] Private vulnerability reporting・secret scanning・ブランチ保護の有効化
+- [x] Private vulnerability reporting・secret scanning・ブランチ保護の有効化
+- [ ] 行動規範の連絡窓口の決定（[#3](https://github.com/tacky0612/smash-hub/issues/3)）
 - [ ] 告知（コントリビューター募集）
 
 **完了条件:** ライセンスと技術選定の ADR がマージされ、`main` で CI が動いている。
