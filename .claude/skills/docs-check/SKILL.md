@@ -41,7 +41,7 @@ python3 .claude/skills/docs-check/scripts/check_docs.py
    - 連合で共有するデータは追記のみ、レート計算は決定的
 2. **同じ事実の重複箇所** — 次のように複数箇所に書かれている事実が揃っているか。
    - 個人情報・認証の方針: `README.md`・`docs/policy.md`・`docs/security/*`・`docs/operations/server-covenant.md`・`docs/architecture/overview.md`・`AGENTS.md`
-   - バックエンドの構成: `docs/architecture/backend.md`・`backend/README.md`・`AGENTS.md`・実際の `backend/` のディレクトリ（`find backend -type d` で突き合わせる）
+   - バックエンドの構成: `docs/architecture/backend.md`・`backend/README.md`・`AGENTS.md`・実際の `backend/` のディレクトリ（`find backend -type d` で突き合わせる。現在は層までで、層の下は予定）
    - 認証プロバイダー: `docs/security/authentication.md`・`docs/adr/0002-*`・`docs/tech-selection.md`・`docs/roadmap.md`
    - リポジトリ構成: `README.md`・`AGENTS.md` の構成図と実際のファイル
    - 保持期間などの数値（アクセスログ 14日、対戦ルームのメッセージ 7日、閉鎖予告 30日 等）

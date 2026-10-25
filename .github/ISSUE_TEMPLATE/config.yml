@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 脆弱性の報告
+    url: https://github.com/tacky0612/smash-hub/security/advisories/new
+    about: 脆弱性は公開の Issue に書かず、こちらから非公開で報告してください。
+  - name: 質問・アイデア・議論
+    url: https://github.com/tacky0612/smash-hub/discussions
+    about: 使い方の質問や設計の議論は Discussions へどうぞ。

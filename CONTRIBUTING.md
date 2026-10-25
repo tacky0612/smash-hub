@@ -44,6 +44,8 @@ Smash-hub に興味を持ってくれてありがとうございます！
 python3 .claude/skills/docs-check/scripts/check_docs.py
 ```
 
+このチェックは PR ごとに GitHub Actions（`.github/workflows/docs-check.yml`）でも自動実行されます。
+
 AI エージェントを使って開発する場合は [AGENTS.md](AGENTS.md) を参照してください。
 
 ## 開発のルール

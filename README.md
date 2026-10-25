@@ -1,5 +1,7 @@
 # Smash-hub
 
+**日本語** | [English](README.en.md)
+
 **サーバーが1台止まっても、対戦の記録は残る。**
 Smash-hub は、大乱闘スマッシュブラザーズ SPECIAL のプレイヤー同士が対戦相手を探し、結果を報告し、レーティングを競うための **分散型・非営利・オープンソース** の対戦プラットフォームです。
 
@@ -75,7 +77,7 @@ flowchart LR
 
 ```
 smash-hub/
-├── README.md          このファイル
+├── README.md          このファイル（英語版: README.en.md）
 ├── LICENSE            ライセンス（AGPL-3.0）
 ├── CONTRIBUTING.md    コントリビューションガイド
 ├── CODE_OF_CONDUCT.md 行動規範

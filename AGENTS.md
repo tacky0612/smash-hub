@@ -35,7 +35,7 @@ Smash-hub は、大乱闘スマッシュブラザーズ SPECIAL の対戦マッ�
 README.md / CONTRIBUTING.md / CODE_OF_CONDUCT.md / SECURITY.md
 AGENTS.md / CLAUDE.md     エージェント向けガイド
 .claude/skills/           Claude Code のスキル
-.github/                  Issue / PR テンプレート
+.github/                  Issue / PR テンプレート、CODEOWNERS、CI（docs-check）
 docs/                     設計・ポリシー・ロードマップ（日本語）
   architecture/           全体像・連合プロトコル・バックエンド・フロントエンド
   domain/                 ユビキタス言語・コンテキスト・レーティング
@@ -67,6 +67,7 @@ backend/                  クリーンアーキテクチャ + DDD のモジュ�
 - 各モジュールは `domain/` → `application/` → `adapter/` の3層。依存は内側（`domain`）へのみ向ける。
 - `domain` はフレームワーク・DB・HTTP・時刻・乱数に直接依存しない（`shared/domain` のインターフェース経由）。
 - モジュール間は他モジュールの `domain` を直接参照せず、ドメインイベントか `application/port` 経由で連携する。
+- 現在の `backend/` はモジュールと層まで。層の下は技術選定後に、backend.md の予定構成に沿って作成する。
 - 新しいモジュールやディレクトリを追加したら、backend.md と backend/README.md の構成図も更新する。
 
 ## ライセンス

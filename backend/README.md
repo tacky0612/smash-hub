@@ -2,7 +2,7 @@
 
 Smash-hub のバックエンドです。対戦募集・結果報告・レーティング・アカウント管理・インスタンス間連携（連合）を担います。
 
-> 言語・フレームワークは **技術選定中** です（[技術選定](../docs/tech-selection.md)）。現在はディレクトリ構成のみ用意しています。
+> 言語・フレームワークは **技術選定中** です（[技術選定](../docs/tech-selection.md)）。現在はモジュールと層のディレクトリのみ用意しています。層の下の構成は技術選定後に作成します（予定は [バックエンド設計](../docs/architecture/backend.md)）。
 
 ## 構成
 
@@ -20,10 +20,7 @@ src/
 ├── shared/           共有カーネル
 ├── platform/         フレームワーク & ドライバー（DB・HTTP・外部認証・暗号・設定・ログ）
 └── bootstrap/        依存の組み立てと起動
-tests/
-├── unit/
-├── integration/
-└── e2e/
+tests/              テスト（unit / integration / e2e の構成は技術選定後に作成）
 ```
 
 依存は `adapter → application → domain` の内向きのみです。`domain` はフレームワーク・DB・HTTP に依存しません。
