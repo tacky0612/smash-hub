@@ -20,7 +20,7 @@ Docker があれば、次のコマンドで起動できます。
 make up   # http://localhost:8080
 ```
 
-開発用ログイン（名前を入れるだけ）で複数の利用者を試せます。詳しくは [CONTRIBUTING.md](CONTRIBUTING.md#開発環境) を参照してください。
+開発用ログイン（名前を入れるだけ）で複数の利用者を試せます。なお、現在の画面は **動作検証用の仮 UI** です（正式なデザインは [#10](https://github.com/tacky0612/smash-hub/issues/10)）。詳しくは [CONTRIBUTING.md](CONTRIBUTING.md#開発環境) を参照してください。
 
 ---
 

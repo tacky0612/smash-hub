@@ -14,6 +14,7 @@ Smash-hub は、大乱闘スマッシュブラザーズ SPECIAL の対戦マッ�
 
 **開発初期** です。1台のサーバーで対戦の一連の流れが動きます。分散（連合）・署名・拒否ステージなどは未実装です（[backend/README.md の「実装状況」](backend/README.md#実装状況)）。
 
+- `frontend/` の画面は **動作検証用の仮 UI** です。正式なデザインは [#10](https://github.com/tacky0612/smash-hub/issues/10) で進めます。機能を追加するときは仮 UI のままで構いませんが、公式の意匠に寄せない・外部リソースを読み込まない方針は守ってください。
 - 技術スタック: フロントエンドは React（SPA）+ TypeScript + Vite、バックエンドは Go、DB は PostgreSQL（[ADR 0005](docs/adr/0005-tech-stack.md)）。
 - [技術者でない運営者向けのデプロイ方式](docs/operations/easy-deployment.md) を議論中です。デプロイ周りを大きく変える前に確認してください。
 

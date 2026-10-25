@@ -12,7 +12,7 @@ Smash-hub に興味を持ってくれてありがとうございます！
 | 設計について意見したい | Discussion や設計ドキュメントへの Issue / PR |
 | 技術選定に意見したい | [技術選定](docs/tech-selection.md) について Discussion で議論 |
 | 実装したい | `good first issue` / `help wanted` ラベルの Issue から |
-| UI デザインをしたい | [フロントエンド設計](docs/architecture/frontend.md) を読んで Issue で提案 |
+| UI デザインをしたい | 現在の画面は動作検証用の仮 UI です。[#10](https://github.com/tacky0612/smash-hub/issues/10) で正式なデザイン（アイコン・Favicon・画面構成）を進めています |
 | サーバーを運用したい | [ロードマップ](docs/roadmap.md) Phase 2 のミラー運用から参加できる予定です |
 | ドキュメントを直したい | 誤字・分かりにくい箇所の PR を歓迎します |
 | バグを報告したい | Issue テンプレートに沿って報告 |
