@@ -1,11 +1,8 @@
 name: docs-check
 
 on:
+  # ブランチ保護の必須チェックにしているため、PR では常に実行する
   pull_request:
-    paths:
-      - "**/*.md"
-      - ".claude/skills/docs-check/**"
-      - ".github/workflows/docs-check.yml"
   push:
     branches: [main]
     paths:
