@@ -10,56 +10,41 @@
 
 ## 2. ディレクトリ構成
 
-> 現在リポジトリに作成しているのは **モジュールと層（`domain` / `application` / `adapter`）まで** です。層の下のサブディレクトリは、言語の命名・パッケージの慣習に合わせて技術選定後に作成します。以下はその予定の構成です。
+言語は **Go**、DB は **PostgreSQL** です（[ADR 0005](../adr/0005-tech-stack.md)）。Go の慣習に合わせ、外部から import させないコードは `internal/` に置きます。
 
 ```
 backend/
-├── src/
-│   ├── modules/                    # 境界づけられたコンテキストごとのモジュール
-│   │   ├── account/                # アカウント・鍵・プロフィール
-│   │   ├── matchmaking/            # 対戦募集・マッチング
-│   │   ├── match/                  # 対戦記録・結果報告・中止・期限切れ
-│   │   ├── rating/                 # レーティング算出・ランキング
-│   │   └── federation/             # インスタンス間連携・ログ複製・連合ポリシー
-│   │
-│   │   # 各モジュールの内部構成（全モジュール共通）
-│   │   └── <module>/
-│   │       ├── domain/             # ① エンティティ層（最内側・何にも依存しない）
-│   │       │   ├── model/          #    集約・エンティティ・値オブジェクト
-│   │       │   ├── event/          #    ドメインイベント
-│   │       │   ├── repository/     #    リポジトリのインターフェース
-│   │       │   └── service/        #    ドメインサービス
-│   │       ├── application/        # ② ユースケース層（domain にのみ依存）
-│   │       │   ├── command/        #    更新系ユースケース
-│   │       │   ├── query/          #    参照系ユースケース
-│   │       │   └── port/           #    外部への出口のインターフェース（通知・他モジュール等）
-│   │       └── adapter/            # ③ インターフェースアダプター層（application に依存）
-│   │           ├── inbound/
-│   │           │   ├── http/       #    フロントエンド向け API のハンドラ
-│   │           │   └── federation/ #    他インスタンスからの受信ハンドラ
-│   │           └── outbound/
-│   │               ├── persistence/#    リポジトリの実装（DB）
-│   │               └── federation/ #    他インスタンスへの送信の実装
-│   │
-│   ├── shared/                     # 共有カーネル（全モジュールが使う最小限の概念）
-│   │   ├── domain/                 #    AccountId, InstanceId, Signature, Timestamp 等
-│   │   └── application/            #    トランザクション境界・イベントバスのインターフェース
-│   │
-│   ├── platform/                   # ④ フレームワーク & ドライバー層
-│   │   ├── config/                 #    設定読み込み
-│   │   ├── database/               #    DB 接続・マイグレーション
-│   │   ├── http/                   #    HTTP サーバー・ミドルウェア・セッション
-│   │   ├── auth/                   #    外部認証プロバイダー（Discord / Google）の OAuth / OIDC クライアント
-│   │   ├── crypto/                 #    署名・ハッシュの実装
-│   │   └── logging/                #    ログ・メトリクス
-│   │
-│   └── bootstrap/                  # コンポジションルート（依存の組み立て・起動）
-│
-└── tests/
-    ├── unit/                       # domain / application の単体テスト
-    ├── integration/                # adapter と DB 等を組み合わせたテスト
-    └── e2e/                        # 複数インスタンスを立てた連合のテスト
+├── cmd/server/                     # エントリーポイント（設定の読み込み・DB 接続・HTTP サーバーの起動）
+└── internal/
+    ├── modules/                    # 境界づけられたコンテキストごとのモジュール
+    │   ├── account/                # アカウント・外部認証との紐づけ・セッション
+    │   ├── matchmaking/            # 対戦相手を探す（対戦募集・自動マッチング）
+    │   ├── match/                  # 対戦・結果報告・中止・期限切れ
+    │   ├── rating/                 # レーティング算出（スマメイト式）・ランキング
+    │   └── federation/             # インスタンス間連携（未実装）
+    │
+    │   # 各モジュールの内部構成（全モジュール共通）
+    │   └── <module>/
+    │       ├── domain/             # ① エンティティ層: 集約・値オブジェクト・リポジトリのインターフェース
+    │       ├── application/        # ② ユースケース層: ユースケースと、他モジュール・外部への port（インターフェース）
+    │       └── adapter/            # ③ インターフェースアダプター層: HTTP ハンドラ・PostgreSQL のリポジトリ実装
+    │
+    ├── shared/                     # 共有カーネル
+    │   ├── domain/                 #    AccountID・MatchID・FighterID・Clock・共通エラー
+    │   └── application/            #    トランザクション境界（TxManager）
+    ├── platform/                   # ④ フレームワーク & ドライバー層
+    │   ├── config/                 #    環境変数からの設定読み込み
+    │   ├── database/               #    接続プール・トランザクション・マイグレーション（SQL を埋め込み）
+    │   ├── httpx/                  #    JSON 入出力・エラー変換・CSRF などのミドルウェア
+    │   ├── auth/                   #    外部認証プロバイダー（Discord）の OAuth 2.0 クライアント
+    │   └── crypto/                 #    識別子ハッシュ（HMAC）・トークン・PKCE
+    ├── bootstrap/                  # コンポジションルート（各モジュールの組み立て、port の接続）
+    └── integrationtest/            # PostgreSQL と結合したテスト（build tag: integration）
 ```
+
+- 単体テストは各パッケージの `*_test.go` に置きます（DB 不要）。
+- 結合テストは `internal/integrationtest/` に置き、`go test -tags=integration` で実行します（→ [backend/README.md](../../backend/README.md)）。
+- 1つのモジュールが大きくなったら、層の下を `domain/model`・`application/command` のように分割します。
 
 ## 3. 依存のルール
 

@@ -12,10 +12,22 @@ Smash-hub は、大乱闘スマッシュブラザーズ SPECIAL の対戦マッ�
 
 ## 現在のステータス
 
-**設計段階** です。言語・フレームワーク・DB は **未決定** です（[docs/tech-selection.md](docs/tech-selection.md)）。
+**開発初期** です。1台のサーバーで対戦の一連の流れが動きます。分散（連合）・署名・拒否ステージなどは未実装です（[backend/README.md の「実装状況」](backend/README.md#実装状況)）。
 
-- 技術選定の ADR が `Accepted` になるまで、特定の言語・フレームワークを前提としたコード・設定ファイル（`package.json`・`go.mod` 等）を追加しないでください。
-- 技術選定に先立って、[技術者でない運営者向けのデプロイ方式](docs/operations/easy-deployment.md) を議論中です。
+- 技術スタック: フロントエンドは React（SPA）+ TypeScript + Vite、バックエンドは Go、DB は PostgreSQL（[ADR 0005](docs/adr/0005-tech-stack.md)）。
+- [技術者でない運営者向けのデプロイ方式](docs/operations/easy-deployment.md) を議論中です。デプロイ周りを大きく変える前に確認してください。
+
+## コマンド
+
+| 目的 | コマンド |
+|---|---|
+| ローカルで全体を起動（http://localhost:8080） | `make up` / `make down` |
+| バックエンドの単体テスト | `make test-unit`（`cd backend && go test ./...`） |
+| 結合テスト（PostgreSQL を Docker で起動） | `make test-integration` |
+| フロントエンドの型チェックとビルド | `make test-frontend` |
+| ドキュメントのチェック | `python3 .claude/skills/docs-check/scripts/check_docs.py` |
+
+コードを変更したら、関係するテストを実行してから報告してください。Go のコードは `gofmt` を通してください。
 
 ## 絶対に守ること
 
@@ -42,8 +54,9 @@ docs/                     設計・ポリシー・ロードマップ（日本語
   security/               セキュリティポリシー・認証・データ保護・脅威モデル・インシデント対応
   operations/             運用者向け（約束事・デプロイ方式の議論）
   adr/                    設計判断の記録
-frontend/                 Web UI（技術選定中）
-backend/                  クリーンアーキテクチャ + DDD のモジュラーモノリス（技術選定中）
+frontend/                 Web UI（React SPA）
+backend/                  クリーンアーキテクチャ + DDD のモジュラーモノリス（Go）
+compose.yaml / Makefile   ローカル環境と起動・テストのコマンド
 ```
 
 ## ドキュメントの規約
@@ -67,7 +80,9 @@ backend/                  クリーンアーキテクチャ + DDD のモジュ�
 - 各モジュールは `domain/` → `application/` → `adapter/` の3層。依存は内側（`domain`）へのみ向ける。
 - `domain` はフレームワーク・DB・HTTP・時刻・乱数に直接依存しない（`shared/domain` のインターフェース経由）。
 - モジュール間は他モジュールの `domain` を直接参照せず、ドメインイベントか `application/port` 経由で連携する。
-- 現在の `backend/` はモジュールと層まで。層の下は技術選定後に、backend.md の予定構成に沿って作成する。
+- Go のコードは `backend/internal/` に置く。モジュールは `internal/modules/<module>/{domain,application,adapter}`。
+- 他モジュールの機能が必要なときは、使う側の `application` に port（インターフェース）を定義し、`internal/bootstrap` で接続する。
+- DB を使う処理を追加したら `internal/integrationtest/` に結合テストを追加する。
 - 新しいモジュールやディレクトリを追加したら、backend.md と backend/README.md の構成図も更新する。
 
 ## ライセンス

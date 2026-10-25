@@ -19,4 +19,10 @@ secrets/
 # Claude Code のローカル設定
 .claude/settings.local.json
 
-# 言語・フレームワーク固有の項目は技術選定後に追加する
+
+# フロントエンド
+frontend/node_modules/
+frontend/dist/
+
+# バックエンド
+backend/bin/

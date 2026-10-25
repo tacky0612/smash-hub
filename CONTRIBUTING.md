@@ -48,16 +48,29 @@ python3 .claude/skills/docs-check/scripts/check_docs.py
 
 AI エージェントを使って開発する場合は [AGENTS.md](AGENTS.md) を参照してください。
 
+## 開発環境
+
+必要なもの: [Docker](https://www.docker.com/)（Compose v2）。バックエンドを直接触る場合は Go 1.26 以上、フロントエンドを直接触る場合は Node.js 24 以上。
+
+```bash
+make up                # 全体を起動（http://localhost:8080）
+make down              # 停止
+make logs              # ログを見る
+make test-unit         # バックエンドの単体テスト
+make test-integration  # バックエンドの結合テスト（PostgreSQL を Docker で起動）
+make test-frontend     # フロントエンドの型チェックとビルド
+```
+
+- ローカル環境では **開発用ログイン**（名前を入れるだけ）が有効です。ブラウザのシークレットウィンドウや別のブラウザを使うと、2人目の利用者として対戦を試せます。
+- Discord ログインを試す場合は、Discord Developer Portal でアプリを作り、`DISCORD_CLIENT_ID`・`DISCORD_CLIENT_SECRET`・`DISCORD_REDIRECT_URL`（`http://localhost:8080/api/auth/discord/callback`）を環境変数で渡して `make up` してください。
+- 個別の詳細は [backend/README.md](backend/README.md)・[frontend/README.md](frontend/README.md) を参照してください。
+
 ## 開発のルール
 
-技術選定が終わり次第、以下を追記します。
-
-- 開発環境のセットアップ手順
-- コーディング規約・lint
-- テストの書き方と実行方法
-- コミットメッセージの規約
-
-バックエンドは [クリーンアーキテクチャ + DDD](docs/architecture/backend.md) の依存ルールに従ってください。
+- バックエンドは [クリーンアーキテクチャ + DDD](docs/architecture/backend.md) の依存ルールに従ってください。
+- Go のコードは `gofmt` を通してください。DB を使う処理には結合テストを追加してください。
+- PR では CI（`ci`・`docs-check`）が通ることを確認してください。
+- コミットメッセージは日本語で、変更の内容が分かるように書いてください。
 
 ## ライセンス
 
