@@ -15,14 +15,15 @@ Smash-hub is a **federated, non-profit, open-source** platform where *Super Smas
 
 ## Why
 
-On October 25, 2026, "Smashmate", a fan site widely used by Japanese players, shut down because running it had become too much of a burden for its operator. Sites run by a single person share the same weaknesses: when the operator stops, the service disappears and years of match history are lost with it, and all of the operational load falls on one person.
+On October 25, 2026, "Smashmate", a fan site widely used by Japanese players, shut down because running it had become too much of a burden for its operator. Sites run by a single person share the same weaknesses: when the operator stops, the service disappears and years of match history are lost with it, and all of the operational load falls on one person. And when players scatter across many replacement sites, match records and ratings get split per site (the same rating means different strength on different sites), and small sites cannot find opponents for their players.
 
 Smash-hub addresses this with a **federated architecture** similar to [Mastodon](https://joinmastodon.org/):
 
 - Multiple independent operators run their own **instances**.
 - A match result is confirmed only when **both players sign** it, so anyone can verify that a record has not been tampered with.
 - Confirmed records are **replicated across instances**. When one instance closes, the records remain on the others.
-- Ratings are **derived deterministically** from the records, so every instance computes the same value.
+- Ratings are **derived deterministically** from the records, so every instance computes the same value — there is one rating across the whole federation.
+- Waiting match requests are shared between instances, so players can **match with players on other instances**, even on a small instance.
 - Accounts can **move** to another instance (planned).
 
 Smash-hub is not an official successor of Smashmate. Its rating rules and formula follow Smashmate's, so its players can feel at home.
