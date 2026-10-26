@@ -23,6 +23,7 @@ Smash-hub の設計・方針・計画をまとめたドキュメント群です�
 | ドキュメント | 内容 |
 |---|---|
 | [domain/README.md](domain/README.md) | ユビキタス言語と境界づけられたコンテキスト |
+| [domain/fighters.md](domain/fighters.md) | ファイター ID とファイターの対応表 |
 | [domain/match-rules.md](domain/match-rules.md) | レーティング対戦のルール（スマメイトのルールを踏襲） |
 | [domain/rating.md](domain/rating.md) | 分散環境でのレーティング算出 |
 

@@ -68,7 +68,7 @@ seq=5  MatchVoided        (無効化イベント)                   prev=h(4)   
 - 確定した対戦記録
   - 対戦日時（played_at）
   - 参加者（`players`: アカウント ID のみ）
-  - 使用キャラクター（`picks`: ゲームごと。参加者とは別の項目にする）
+  - 使用キャラクター（`picks`: ゲームごとの数値のファイター ID。参加者とは別の項目にする → [ファイター ID](../domain/fighters.md)）
   - 勝敗
   - 対戦ルール（Ruleset の ID とバージョン）
   - 署名
@@ -369,8 +369,8 @@ sequenceDiagram
       { "account_id": "did:key:z6MkBob..." }
     ],
     "picks": [
-      { "game": 1, "characters": ["mario", "fox"] },
-      { "game": 2, "characters": ["mario", "pikachu"] }
+      { "game": 1, "characters": [1, 8] },
+      { "game": 2, "characters": [1, 9] }
     ],
     "winner": 0,
     "host_instance": "https://a.example",
@@ -384,7 +384,7 @@ sequenceDiagram
 ```
 
 - `players` はプレイヤーの識別だけを持つ（アカウント ID）。順番はプレイヤー1（部屋を立てた側）、プレイヤー2 の順。`winner` は `players` の添字
-- `picks` は使用キャラクターを **プレイヤーとは別の項目** としてゲームごとに持つ。`characters` の並びは `players` と同じ順番。値はテキストの識別子（画像は持たない）
+- `picks` は使用キャラクターを **プレイヤーとは別の項目** としてゲームごとに持つ。`characters` の並びは `players` と同じ順番。値は **数値のファイター ID**（例: 1 = マリオ、8 = フォックス、9 = ピカチュウ。対応表は [ファイター ID](../domain/fighters.md)）。表示名や画像は持たない
 - `picks` には少なくとも1戦目（`game: 1`）を含める。2戦目以降は、ゲームごとの記録を実装したら含める
 - 表示名は含めない（→ 4.2）
 - ホストの署名はイベントヘッダの `sig`（ホストインスタンスの署名）で兼ねる
