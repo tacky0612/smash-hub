@@ -22,6 +22,11 @@ type Config struct {
 
 	DevLoginEnabled bool
 
+	// 接続元の IP アドレスを伝えるヘッダー（frontend の nginx が付ける X-Real-IP）。空なら接続元のアドレスを使う
+	ClientIPHeader string
+	// アクセスログの保持期間（docs/security/data-protection.md、初期値 14日）
+	AccessLogRetention time.Duration
+
 	DiscordClientID     string
 	DiscordClientSecret string
 	DiscordRedirectURL  string
@@ -55,6 +60,8 @@ func Load() (Config, error) {
 		CookieSecure:        envBool("COOKIE_SECURE", true),
 		IdentifierPepper:    []byte(os.Getenv("IDENTIFIER_PEPPER")),
 		DevLoginEnabled:     envBool("DEV_LOGIN_ENABLED", false),
+		ClientIPHeader:      os.Getenv("CLIENT_IP_HEADER"),
+		AccessLogRetention:  time.Duration(envInt("ACCESS_LOG_RETENTION_DAYS", 14)) * 24 * time.Hour,
 		DiscordClientID:     os.Getenv("DISCORD_CLIENT_ID"),
 		DiscordClientSecret: os.Getenv("DISCORD_CLIENT_SECRET"),
 		DiscordRedirectURL:  os.Getenv("DISCORD_REDIRECT_URL"),
@@ -93,6 +100,9 @@ func Load() (Config, error) {
 	}
 	if len(c.IdentifierPepper) < 32 {
 		return c, errors.New("IDENTIFIER_PEPPER must be at least 32 bytes")
+	}
+	if c.AccessLogRetention <= 0 {
+		return c, errors.New("ACCESS_LOG_RETENTION_DAYS must be at least 1")
 	}
 	if c.Env == "production" && c.DevLoginEnabled {
 		return c, errors.New("DEV_LOGIN_ENABLED must not be true in production")

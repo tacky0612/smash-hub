@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/netip"
 	"strings"
 
 	"github.com/tacky0612/smash-hub/backend/internal/shared/domain"
@@ -67,6 +69,40 @@ func AccountID(ctx context.Context) (domain.AccountID, error) {
 		return "", domain.ErrUnauthorized
 	}
 	return id, nil
+}
+
+type clientIPKey struct{}
+
+// ClientIPFrom は接続元の IP アドレスを ctx に格納するミドルウェアを返す。
+// header が空でなければ、リバースプロキシ（frontend の nginx）が付けたそのヘッダーの値を使う。
+// ヘッダーは利用者が偽装できるため、バックエンドをプロキシの後ろにだけ置く構成で設定する。
+func ClientIPFrom(header string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ip := remoteIP(r.RemoteAddr)
+			if header != "" {
+				if a, err := netip.ParseAddr(strings.TrimSpace(r.Header.Get(header))); err == nil {
+					ip = a.Unmap()
+				}
+			}
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), clientIPKey{}, ip)))
+		})
+	}
+}
+
+// ClientIP は ctx から接続元の IP アドレスを取り出す（ClientIPFrom を通っていなければ無効な値）。
+func ClientIP(ctx context.Context) netip.Addr {
+	ip, _ := ctx.Value(clientIPKey{}).(netip.Addr)
+	return ip
+}
+
+func remoteIP(addr string) netip.Addr {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		host = addr
+	}
+	a, _ := netip.ParseAddr(host)
+	return a.Unmap()
 }
 
 // CSRF は GET / HEAD 以外のリクエストに CSRFHeader を要求する。
