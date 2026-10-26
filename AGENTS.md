@@ -16,7 +16,7 @@ Smash-hub は、大乱闘スマッシュブラザーズ SPECIAL の対戦マッ�
 
 - `frontend/` の画面は **動作検証用の仮 UI** です。正式なデザインは [#10](https://github.com/tacky0612/smash-hub/issues/10) で進めます。機能を追加するときは仮 UI のままで構いませんが、公式の意匠に寄せない・外部リソースを読み込まない方針は守ってください。
 - 技術スタック: フロントエンドは React（SPA）+ TypeScript + Vite、バックエンドは Go、DB は PostgreSQL（[ADR 0005](docs/adr/0005-tech-stack.md)）。
-- [技術者でない運営者向けのデプロイ方式](docs/operations/easy-deployment.md) を議論中です。デプロイ周りを大きく変える前に確認してください。
+- 技術者でない運営者向けのデプロイ方式は、国内 VPS のスタートアップスクリプトで立ち上げ、初期設定・更新・バックアップをブラウザの画面で行う方式に決まりました（[ADR 0009](docs/adr/0009-deployment-vps-startup-script.md)）。本番の最小構成はメモリ 1GB の VPS です。デプロイ周りを変えるときはこの ADR に沿ってください。
 
 ## コマンド
 
@@ -54,7 +54,7 @@ docs/                     設計・ポリシー・ロードマップ（日本語
   architecture/           全体像・連合プロトコル・バックエンド・フロントエンド
   domain/                 ユビキタス言語・コンテキスト・レーティング
   security/               セキュリティポリシー・認証・データ保護・脅威モデル・インシデント対応
-  operations/             運用者向け（約束事・デプロイ方式の議論）
+  operations/             運用者向け（約束事・デプロイ方式）
   adr/                    設計判断の記録
 frontend/                 Web UI（React SPA）
 backend/                  クリーンアーキテクチャ + DDD のモジュラーモノリス（Go）

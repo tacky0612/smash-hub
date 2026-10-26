@@ -52,7 +52,7 @@ Smash-hub の設計・方針・計画をまとめたドキュメント群です�
 | ドキュメント | 内容 |
 |---|---|
 | [operations/server-covenant.md](operations/server-covenant.md) | 連合に参加するサーバー運用者の約束事 |
-| [operations/easy-deployment.md](operations/easy-deployment.md) | 技術者でなくてもインスタンスを立てられるようにするための議論（議論中） |
+| [operations/easy-deployment.md](operations/easy-deployment.md) | 技術者でなくてもインスタンスを立てられるようにするための議論（結論は [ADR 0009](adr/0009-deployment-vps-startup-script.md)） |
 
 ## ドキュメントの書き方
 
