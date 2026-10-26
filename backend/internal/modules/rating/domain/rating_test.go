@@ -56,10 +56,10 @@ func TestCompute_IndependentOfInputOrder(t *testing.T) {
 	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	a, b, c := shared.AccountID("a"), shared.AccountID("b"), shared.AccountID("c")
 	results := []Result{
-		{MatchID: "m1", PlayedAt: base, Winner: a, Loser: b},
-		{MatchID: "m2", PlayedAt: base.Add(time.Minute), Winner: c, Loser: a},
-		{MatchID: "m3", PlayedAt: base.Add(time.Minute), Winner: b, Loser: c}, // m2 と同時刻 → ID 順
-		{MatchID: "m4", PlayedAt: base.Add(2 * time.Minute), Winner: a, Loser: c},
+		{RecordID: "m1", PlayedAt: base, Winner: a, Loser: b},
+		{RecordID: "m2", PlayedAt: base.Add(time.Minute), Winner: c, Loser: a},
+		{RecordID: "m3", PlayedAt: base.Add(time.Minute), Winner: b, Loser: c}, // m2 と同時刻 → ID 順
+		{RecordID: "m4", PlayedAt: base.Add(2 * time.Minute), Winner: a, Loser: c},
 	}
 	want := Compute(results)
 	reversed := []Result{results[3], results[2], results[1], results[0]}

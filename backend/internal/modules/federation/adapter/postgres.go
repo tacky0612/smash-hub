@@ -95,11 +95,11 @@ func (p Postgres) InsertRecord(ctx context.Context, r shared.MatchRecord, logged
 	if err != nil {
 		return err
 	}
-	// 同じ対戦 ID の記録は1件だけ（最初に記録したものが正）
+	// 記録 ID が同じなら同じ記録（内容が同じなので、どちらを残しても結果は変わらない）
 	_, err = p.DB.Q(ctx).Exec(ctx,
-		`INSERT INTO match_records (match_id, host, played_at, logged_at, player1_id, player2_id, winner, body)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (match_id) DO NOTHING`,
-		r.MatchID, r.HostInstance, played, loggedAt, r.Players[0].AccountID, r.Players[1].AccountID, r.Winner, string(body))
+		`INSERT INTO match_records (record_id, match_id, host, played_at, logged_at, player1_id, player2_id, winner, body)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT (record_id) DO NOTHING`,
+		r.RecordID(), r.MatchID, r.HostInstance, played, loggedAt, r.Players[0].AccountID, r.Players[1].AccountID, r.Winner, string(body))
 	return err
 }
 
@@ -124,7 +124,7 @@ func (p Postgres) Records(ctx context.Context, from, to time.Time) ([]applicatio
 	}
 	return collectRecords(p.DB.Q(ctx).Query(ctx,
 		`SELECT body, logged_at FROM match_records
-		 WHERE played_at >= $1 AND ($2::timestamptz IS NULL OR played_at < $2) ORDER BY played_at, match_id`, from, toPtr))
+		 WHERE played_at >= $1 AND ($2::timestamptz IS NULL OR played_at < $2) ORDER BY played_at, record_id`, from, toPtr))
 }
 
 func (p Postgres) RecordsFor(ctx context.Context, account shared.AccountID, limit int) ([]application.StoredRecord, error) {

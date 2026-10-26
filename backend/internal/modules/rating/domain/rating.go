@@ -42,7 +42,7 @@ func floorDiv(a, b int) int {
 
 // Result はレート計算の入力となる、確定した1回の対戦の結果。
 type Result struct {
-	MatchID  shared.MatchID
+	RecordID string // 記録 ID（同時刻の記録の並び順に使う）
 	PlayedAt time.Time
 	Winner   shared.AccountID
 	Loser    shared.AccountID
@@ -58,7 +58,7 @@ type Standing struct {
 }
 
 // Compute は対戦結果の集合からシーズンの成績を計算する。
-// 入力の順番に依存しないよう、played_at → 対戦 ID の順に並べてから1件ずつ適用する。
+// 入力の順番に依存しないよう、played_at → 記録 ID の順に並べてから1件ずつ適用する。
 func Compute(results []Result) map[shared.AccountID]Standing {
 	sorted := make([]Result, len(results))
 	copy(sorted, results)
@@ -66,7 +66,7 @@ func Compute(results []Result) map[shared.AccountID]Standing {
 		if !sorted[i].PlayedAt.Equal(sorted[j].PlayedAt) {
 			return sorted[i].PlayedAt.Before(sorted[j].PlayedAt)
 		}
-		return sorted[i].MatchID < sorted[j].MatchID
+		return sorted[i].RecordID < sorted[j].RecordID
 	})
 	st := map[shared.AccountID]Standing{}
 	get := func(id shared.AccountID) Standing {

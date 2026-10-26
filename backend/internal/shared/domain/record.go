@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"time"
+)
 
 // RulesetStandard は標準ルール（docs/domain/match-rules.md）の ID とバージョン。
 const RulesetStandard = "standard-1on1@1"
@@ -42,6 +46,13 @@ func (s MatchStatement) Bytes() []byte {
 		panic(err) // 構造体の JSON 化は失敗しない
 	}
 	return b
+}
+
+// RecordID は記録 ID（対戦結果の内容の正規化 JSON の SHA-256 を小文字の16進で表したもの）。
+// 連合全体で記録を一意に識別し、同時刻の記録を並べる順番にも使う（docs/architecture/federation.md 12.1）。
+func (s MatchStatement) RecordID() string {
+	sum := sha256.Sum256(s.Bytes())
+	return hex.EncodeToString(sum[:])
 }
 
 // PlayerSignature はプレイヤーの署名。

@@ -57,7 +57,7 @@ func (c confirmedResults) ConfirmedResults(ctx context.Context, season ratingdom
 			continue
 		}
 		results = append(results, ratingdomain.Result{
-			MatchID: r.MatchID, PlayedAt: played,
+			RecordID: r.RecordID(), PlayedAt: played,
 			Winner: r.Players[r.Winner].AccountID, Loser: r.Players[1-r.Winner].AccountID,
 		})
 	}
