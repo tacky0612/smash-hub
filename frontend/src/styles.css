@@ -31,6 +31,7 @@ a { color: var(--accent); }
   padding: 12px 16px; background: var(--accent); color: var(--accent-text);
 }
 .brand { font-weight: 800; font-size: 1.25rem; letter-spacing: 0.02em; text-decoration: none; color: var(--accent-text); }
+.instance-name { margin-left: 8px; padding: 2px 8px; font-size: 0.75rem; font-weight: 600; border-radius: 999px; background: rgba(255, 255, 255, 0.2); vertical-align: middle; }
 .nav { display: flex; flex-wrap: wrap; gap: 4px; }
 .nav a { padding: 6px 10px; border-radius: 6px; text-decoration: none; color: var(--accent-text); opacity: 0.85; }
 .nav a:hover { opacity: 1; }

@@ -21,7 +21,7 @@ backend/
     │   ├── matchmaking/            # 対戦相手を探す（対戦募集・自動マッチング）
     │   ├── match/                  # 対戦・結果報告・中止・期限切れ
     │   ├── rating/                 # レーティング算出（スマメイト式）・ランキング
-    │   └── federation/             # インスタンス間連携（未実装）
+    │   └── federation/             # 連合: 署名付き追記専用ログ・pull 同期・検証・インスタンス間の対戦の受け口
     │
     │   # 各モジュールの内部構成（全モジュール共通）
     │   └── <module>/
@@ -40,6 +40,7 @@ backend/
     │   └── crypto/                 #    識別子ハッシュ（HMAC）・トークン・PKCE
     ├── bootstrap/                  # コンポジションルート（各モジュールの組み立て、port の接続）
     └── integrationtest/            # PostgreSQL と結合したテスト（build tag: integration）
+e2e/                                # 2つのインスタンスを Docker で立てた E2E テスト（build tag: e2e）
 ```
 
 - 単体テストは各パッケージの `*_test.go` に置きます（DB 不要）。
@@ -83,7 +84,7 @@ flowchart LR
 | `matchmaking` | `MatchRequest`（対戦募集）, `MatchingQueue`, `MatchmakingPreference`, `StageBanList`, `BlockList` | 対戦相手を探す（募集作成・自動マッチング）、キャンセル、マッチング条件・拒否ステージ・スイッチ・ブロックの設定 | `MatchMade` |
 | `match` | `Match`（対戦） | 対戦開始、ゲームの記録（ステージ・ファイター）、結果報告（両者）、期限切れ処理、無効化 | `MatchConfirmed`, `MatchCancelled`, `MatchExpired`, `MatchVoided` |
 | `rating` | `RatingLedger`, `Season` | レート再計算、ランキング取得、レート履歴取得 | `RatingUpdated` |
-| `federation` | `Peer`（連合先）, `LogEntry`, `FederationPolicy` | ログ追記、ログ提供、ログ取り込み・検証、連合先管理 | `RemoteEntryImported` |
+| `federation` | `Event`（ログのイベント）, `AccountPublished`, `PeerState`（連合先と取り込み位置） | ログ追記（AccountPublished・MatchRecorded）、ログ提供、pull 同期と検証、募集の配信の受け付け、インスタンス間の対戦の受け口（申し込み・状態・報告の中継を matchmaking / match へ渡す） | `RecordsChanged`（rating の再計算） |
 
 ## 5. 設計上の約束
 

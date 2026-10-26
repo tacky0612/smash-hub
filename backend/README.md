@@ -15,12 +15,13 @@ internal/
 │   ├── matchmaking/  対戦相手を探す（自動マッチング）
 │   ├── match/        対戦・結果報告・中止・期限切れ
 │   ├── rating/       レーティング算出（スマメイト式）・ランキング
-│   └── federation/   インスタンス間連携（未実装）
+│   └── federation/   連合（署名付き追記専用ログ・pull 同期・検証・インスタンス間の対戦の受け口）
 │       （各モジュール: domain/ → application/ → adapter/）
 ├── shared/           共有カーネル
 ├── platform/         フレームワーク & ドライバー（DB・HTTP・外部認証・暗号・設定）
 ├── bootstrap/        依存の組み立て（モジュール間の port を接続する）
 └── integrationtest/  PostgreSQL と結合したテスト
+e2e/                  Docker で立てた2つのインスタンスに対する E2E テスト（連合での対戦の流れ）
 ```
 
 依存は `adapter → application → domain` の内向きのみです。`domain` はフレームワーク・DB・HTTP に依存しません。
@@ -41,7 +42,12 @@ internal/
 | Google ログイン・複数プロバイダーの紐づけ | 未実装 |
 | 拒否ステージ・ゲームごとの記録・スイッチ・ブロック・連戦/接続の条件・配信設定 | 未実装 |
 | 対戦マナーの目安・通報・モデレーション | 未実装 |
-| 鍵ペア・署名付きの対戦記録・追記専用ログ・連合 | 未実装 |
+| アカウントの鍵ペア（did:key の ID、秘密鍵は暗号化して保存）・AccountPublished | ✅ |
+| 両者の署名付きの対戦記録・インスタンス署名付きの追記専用ログ（MatchRecorded） | ✅ |
+| 連合先のログの pull 同期と検証（署名・連番・ハッシュチェーン・プレイヤー署名） | ✅ |
+| レートを連合で共有された対戦記録から計算（取り込みの締め切り 7日） | ✅ |
+| インスタンスをまたぐ対戦（募集の配信・申し込み・状態の取得・報告の中継） | ✅ |
+| ログの再配布・スナップショット・鍵の更新・アカウント移行・MatchVoided | 未実装 |
 | レート制限・アクセスログの保持期間 | 未実装 |
 
 ## 開発
@@ -52,7 +58,10 @@ internal/
 make up                # Docker Compose で全体を起動（http://localhost:8080）
 make test-unit         # 単体テスト（DB 不要）
 make test-integration  # 結合テスト（PostgreSQL を Docker で起動して実行）
+make test-e2e          # E2E テスト（2つのインスタンスを Docker で起動し、連合での対戦の流れを検証）
 ```
+
+`make up` では Instance1（http://localhost:8080）と Instance2（http://localhost:8090）が起動し、互いを連合先にします。E2E テスト（`e2e/`、build tag `e2e`）は2つのインスタンスの HTTP API を操作して、インスタンスをまたぐマッチング・報告の中継・記録の複製・両インスタンスでのレートの一致を検証します。CI でも同じテストを実行します。
 
 結合テストは build tag `integration` を付けたテストで、`TEST_DATABASE_URL` の DB を毎回空にして使います。本番や開発の DB を指定しないでください。
 
@@ -77,3 +86,9 @@ TEST_DATABASE_URL=postgres://test:test@localhost:55432/smashhub_test?sslmode=dis
 | `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` / `DISCORD_REDIRECT_URL` | | Discord ログイン。リダイレクト URL は `<PUBLIC_BASE_URL>/api/auth/discord/callback` |
 | `SEASON_ID` / `SEASON_START` | | 現在のシーズン（既定: `S1` / `2026-01-01T00:00:00+09:00`） |
 | `RANKING_MIN_MATCHES` | | ランキング掲載に必要な対戦数（既定: 20。ローカル環境では 1） |
+| `INSTANCE_URL` | ✓ | インスタンス ID。連合先から到達できるベース URL |
+| `INSTANCE_NAME` | | 表示用のインスタンス名 |
+| `INSTANCE_PRIVATE_KEY` | ✓ | インスタンスの署名鍵（Ed25519 の 32バイトのシードを base64 にしたもの）。**DB とは別に保管・バックアップする** |
+| `ACCOUNT_KEY_SECRET` | ✓ | アカウントの秘密鍵を暗号化する鍵暗号化鍵（32バイト以上）。**DB とは別に保管・バックアップする** |
+| `PEERS` | | 連合先（許可リスト）のベース URL をカンマ区切りで |
+| `FEDERATION_SYNC_INTERVAL` | | 連合先のログを取りに行く間隔（既定: `5s`） |

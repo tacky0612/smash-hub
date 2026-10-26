@@ -12,8 +12,8 @@ type Fighter struct {
 	Name string    `json:"name"`
 }
 
-// Fighters は使用できるファイターの一覧。並び順（1 始まり）が連合プロトコルで使う数値のファイター ID になる
-// （対応表: docs/domain/fighters.md）。一度割り当てた ID は変えないため、並べ替えず、新しいファイターは末尾に追加する。
+// Fighters は使用できるファイターの一覧（参戦順）。ID は連合プロトコルの対戦記録でも使う（対応表: docs/domain/fighters.md）。
+// 一度割り当てた ID は変更・再利用しない。
 var Fighters = []Fighter{
 	{"mario", "マリオ"},
 	{"donkey_kong", "ドンキーコング"},

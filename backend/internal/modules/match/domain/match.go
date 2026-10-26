@@ -52,16 +52,69 @@ type Match struct {
 	PlayedAt   time.Time
 	ExpiresAt  time.Time
 	ResolvedAt time.Time
+	// Host はこの対戦をホストするインスタンス（結果の受付と確定を担当する）
+	Host shared.InstanceID
+	// Player2Home はプレイヤー2が他インスタンスの利用者の場合のホームインスタンス（自インスタンスの利用者なら空）
+	Player2Home shared.InstanceID
+	// Sig1・Sig2 は各プレイヤーの結果報告の署名（報告内容に対応する MatchStatement への署名）
+	Sig1 string
+	Sig2 string
 }
 
-// New は成立した対戦を作る。
-func New(id shared.MatchID, p1, p2 shared.AccountID, f1, f2 shared.FighterID, now time.Time) (Match, error) {
+// New は成立した対戦を作る。p2Home はプレイヤー2が他インスタンスの利用者ならそのインスタンス。
+func New(id shared.MatchID, host shared.InstanceID, p1, p2 shared.AccountID, f1, f2 shared.FighterID, p2Home shared.InstanceID, now time.Time) (Match, error) {
 	if p1 == p2 {
 		return Match{}, shared.Invalid("同じプレイヤー同士は対戦できません")
 	}
 	return Match{
-		ID: id, Player1: p1, Player2: p2, Fighter1: f1, Fighter2: f2,
+		ID: id, Host: host, Player1: p1, Player2: p2, Fighter1: f1, Fighter2: f2, Player2Home: p2Home,
 		Status: StatusInProgress, PlayedAt: now, ExpiresAt: now.Add(ExpiryWindow),
+	}, nil
+}
+
+// WinnerIndex は by の報告 r が示す勝者の添字（0: プレイヤー1、1: プレイヤー2）を返す。勝敗の報告でなければ -1。
+func (m Match) WinnerIndex(by shared.AccountID, r Report) int {
+	self := 0
+	if by == m.Player2 {
+		self = 1
+	}
+	switch r {
+	case ReportWin:
+		return self
+	case ReportLose:
+		return 1 - self
+	}
+	return -1
+}
+
+// Statement は勝者を winner とした対戦結果の内容（両プレイヤーが署名する対象）を返す。
+func (m Match) Statement(winner int) shared.MatchStatement {
+	return shared.MatchStatement{
+		MatchID:      m.ID,
+		HostInstance: m.Host,
+		PlayedAt:     shared.FormatTime(m.PlayedAt),
+		Ruleset:      shared.RulesetStandard,
+		Players:      []shared.PlayerRef{{AccountID: m.Player1}, {AccountID: m.Player2}},
+		Picks:        []shared.Pick{{Game: 1, Characters: []shared.FighterID{m.Fighter1, m.Fighter2}}},
+		Winner:       winner,
+	}
+}
+
+// Record は確定した対戦の記録（両者の署名付き）を返す。
+func (m Match) Record() (shared.MatchRecord, error) {
+	if m.Status != StatusConfirmed {
+		return shared.MatchRecord{}, shared.Invalid("確定していない対戦です")
+	}
+	winner := 0
+	if m.Winner == m.Player2 {
+		winner = 1
+	}
+	return shared.MatchRecord{
+		MatchStatement: m.Statement(winner),
+		Signatures: []shared.PlayerSignature{
+			{AccountID: m.Player1, Sig: m.Sig1},
+			{AccountID: m.Player2, Sig: m.Sig2},
+		},
 	}, nil
 }
 
@@ -96,9 +149,9 @@ func (m *Match) SetRoomID(by shared.AccountID, roomID string, now time.Time) err
 	return nil
 }
 
-// SubmitReport は by の結果報告を記録し、両者の報告が一致すれば確定・中止にする。
-// 確定した場合は confirmed に true を返す。
-func (m *Match) SubmitReport(by shared.AccountID, r Report, now time.Time) (confirmed bool, err error) {
+// SubmitReport は by の結果報告（と、勝敗の報告なら対戦結果の内容への署名 sig）を記録し、
+// 両者の報告が一致すれば確定・中止にする。確定した場合は confirmed に true を返す。
+func (m *Match) SubmitReport(by shared.AccountID, r Report, sig string, now time.Time) (confirmed bool, err error) {
 	if err := m.ensureActive(now); err != nil {
 		return false, err
 	}
@@ -107,9 +160,9 @@ func (m *Match) SubmitReport(by shared.AccountID, r Report, now time.Time) (conf
 	}
 	switch by {
 	case m.Player1:
-		m.Report1 = r
+		m.Report1, m.Sig1 = r, sig
 	case m.Player2:
-		m.Report2 = r
+		m.Report2, m.Sig2 = r, sig
 	default:
 		return false, shared.ErrForbidden
 	}
@@ -160,4 +213,22 @@ type Repository interface {
 	ConfirmedBetween(ctx context.Context, from, to time.Time) ([]Match, error)
 	// DueForExpiry は期限を過ぎた進行中の対戦 ID を返す。
 	DueForExpiry(ctx context.Context, now time.Time, limit int) ([]shared.MatchID, error)
+}
+
+// RemoteRef は、自インスタンスの利用者が参加している、他インスタンスがホストする対戦への参照。
+// 対戦の状態はホストが持ち、自インスタンスは参照と最後に確認した状態だけを持つ。
+type RemoteRef struct {
+	MatchID   shared.MatchID
+	Host      shared.InstanceID
+	AccountID shared.AccountID
+	Status    Status
+	CreatedAt time.Time
+}
+
+// RemoteRefRepository は RemoteRef の永続化。
+type RemoteRefRepository interface {
+	Create(ctx context.Context, r RemoteRef) error
+	Get(ctx context.Context, id shared.MatchID) (RemoteRef, error)
+	Active(ctx context.Context, account shared.AccountID) ([]RemoteRef, error)
+	SetStatus(ctx context.Context, id shared.MatchID, s Status) error
 }

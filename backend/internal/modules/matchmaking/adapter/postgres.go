@@ -49,6 +49,11 @@ func (p Postgres) WaitingForUpdate(ctx context.Context, account shared.AccountID
 		`SELECT `+requestColumns+` FROM match_requests WHERE account_id = $1 AND status = 'waiting' FOR UPDATE`, account))
 }
 
+func (p Postgres) WaitingByIDForUpdate(ctx context.Context, id string) (domain.Request, error) {
+	return scanRequest(p.DB.Q(ctx).QueryRow(ctx,
+		`SELECT `+requestColumns+` FROM match_requests WHERE id = $1 AND status = 'waiting' FOR UPDATE SKIP LOCKED`, id))
+}
+
 func (p Postgres) CandidatesForUpdate(ctx context.Context, account shared.AccountID, seenAfter time.Time, limit int) ([]domain.Request, error) {
 	rows, err := p.DB.Q(ctx).Query(ctx,
 		`SELECT `+requestColumns+` FROM match_requests

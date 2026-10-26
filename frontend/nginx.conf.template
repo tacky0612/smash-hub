@@ -1,3 +1,4 @@
+# nginx 公式イメージが起動時に環境変数 BACKEND_URL を埋め込んで /etc/nginx/conf.d/default.conf を作る
 server {
     listen 80;
     server_name _;
@@ -6,7 +7,15 @@ server {
     # add_header は location で再定義すると親の設定を引き継がないため、各 location で読み込む
     location /api/ {
         include /etc/nginx/snippets/security-headers.conf;
-        proxy_pass http://backend:8081;
+        proxy_pass ${BACKEND_URL};
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # インスタンス間の API（連合）。他のインスタンスから到達できるように公開する
+    location /federation/ {
+        include /etc/nginx/snippets/security-headers.conf;
+        proxy_pass ${BACKEND_URL};
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
     }

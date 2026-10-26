@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -28,6 +29,14 @@ type Config struct {
 	SeasonID          string
 	SeasonStart       time.Time
 	RankingMinMatches int
+
+	// 連合（docs/architecture/federation.md）
+	InstanceURL        string        // インスタンス ID。連合先から到達できるベース URL
+	InstanceName       string        // 表示用のインスタンス名
+	InstancePrivateKey string        // インスタンスの署名鍵（Ed25519 のシード、base64）。DB とは別に保管する
+	AccountKeySecret   []byte        // アカウントの秘密鍵を暗号化する鍵暗号化鍵（KEK）。32バイト以上
+	Peers              []string      // 連合先（許可リスト）のベース URL
+	SyncInterval       time.Duration // 連合先のログを取りに行く間隔
 }
 
 // DiscordEnabled は Discord ログインが設定されているかを返す。
@@ -52,6 +61,27 @@ func Load() (Config, error) {
 		SeasonID:            env("SEASON_ID", "S1"),
 		RankingMinMatches:   envInt("RANKING_MIN_MATCHES", 20),
 	}
+	c.InstanceURL = strings.TrimRight(os.Getenv("INSTANCE_URL"), "/")
+	c.InstanceName = env("INSTANCE_NAME", "Smash-hub")
+	c.InstancePrivateKey = os.Getenv("INSTANCE_PRIVATE_KEY")
+	c.AccountKeySecret = []byte(os.Getenv("ACCOUNT_KEY_SECRET"))
+	for _, p := range strings.Split(os.Getenv("PEERS"), ",") {
+		if p = strings.TrimRight(strings.TrimSpace(p), "/"); p != "" {
+			c.Peers = append(c.Peers, p)
+		}
+	}
+	sync, err := time.ParseDuration(env("FEDERATION_SYNC_INTERVAL", "5s"))
+	if err != nil {
+		return c, fmt.Errorf("FEDERATION_SYNC_INTERVAL: %w", err)
+	}
+	c.SyncInterval = sync
+	if c.InstanceURL == "" || c.InstancePrivateKey == "" {
+		return c, errors.New("INSTANCE_URL and INSTANCE_PRIVATE_KEY are required")
+	}
+	if len(c.AccountKeySecret) < 32 {
+		return c, errors.New("ACCOUNT_KEY_SECRET must be at least 32 bytes")
+	}
+
 	start, err := time.Parse(time.RFC3339, env("SEASON_START", "2026-01-01T00:00:00+09:00"))
 	if err != nil {
 		return c, fmt.Errorf("SEASON_START: %w", err)

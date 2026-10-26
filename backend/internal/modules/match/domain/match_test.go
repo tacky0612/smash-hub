@@ -12,7 +12,7 @@ var t0 = time.Date(2026, 11, 1, 20, 0, 0, 0, time.UTC)
 
 func newMatch(t *testing.T) Match {
 	t.Helper()
-	m, err := New("m1", "p1", "p2", "mario", "fox", t0)
+	m, err := New("m1", "https://a.example", "p1", "p2", "mario", "fox", "", t0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,13 +37,13 @@ func TestSubmitReport(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := newMatch(t)
-			if _, err := m.SubmitReport("p1", tt.r1, t0); err != nil {
+			if _, err := m.SubmitReport("p1", tt.r1, "", t0); err != nil {
 				t.Fatal(err)
 			}
 			if m.Status != StatusInProgress {
 				t.Fatalf("片方の報告で状態が変わった: %s", m.Status)
 			}
-			confirmed, err := m.SubmitReport("p2", tt.r2, t0)
+			confirmed, err := m.SubmitReport("p2", tt.r2, "", t0)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -59,12 +59,12 @@ func TestSubmitReport(t *testing.T) {
 
 func TestSubmitReport_ReReportResolvesMismatch(t *testing.T) {
 	m := newMatch(t)
-	_, _ = m.SubmitReport("p1", ReportWin, t0)
-	_, _ = m.SubmitReport("p2", ReportWin, t0)
+	_, _ = m.SubmitReport("p1", ReportWin, "", t0)
+	_, _ = m.SubmitReport("p2", ReportWin, "", t0)
 	if !m.Mismatched() {
 		t.Fatal("食い違いになっていない")
 	}
-	confirmed, err := m.SubmitReport("p2", ReportLose, t0)
+	confirmed, err := m.SubmitReport("p2", ReportLose, "", t0)
 	if err != nil || !confirmed || m.Winner != "p1" {
 		t.Fatalf("報告し直しで確定しない: confirmed=%v err=%v winner=%s", confirmed, err, m.Winner)
 	}
@@ -72,13 +72,13 @@ func TestSubmitReport_ReReportResolvesMismatch(t *testing.T) {
 
 func TestSubmitReport_Rejections(t *testing.T) {
 	m := newMatch(t)
-	if _, err := m.SubmitReport("outsider", ReportWin, t0); !errors.Is(err, shared.ErrForbidden) {
+	if _, err := m.SubmitReport("outsider", ReportWin, "", t0); !errors.Is(err, shared.ErrForbidden) {
 		t.Errorf("当事者以外の報告: err = %v", err)
 	}
-	if _, err := m.SubmitReport("p1", "draw", t0); err == nil {
+	if _, err := m.SubmitReport("p1", "draw", "", t0); err == nil {
 		t.Error("不正な報告値を受け付けた")
 	}
-	if _, err := m.SubmitReport("p1", ReportWin, t0.Add(ExpiryWindow)); err == nil {
+	if _, err := m.SubmitReport("p1", ReportWin, "", t0.Add(ExpiryWindow)); err == nil {
 		t.Error("期限後の報告を受け付けた")
 	}
 	if m.Status != StatusExpired {
@@ -106,5 +106,28 @@ func TestExpireIfDue(t *testing.T) {
 	}
 	if !m.ExpireIfDue(t0.Add(ExpiryWindow)) || m.Status != StatusExpired {
 		t.Error("期限で期限切れにならない")
+	}
+}
+
+func TestStatementAndRecord(t *testing.T) {
+	m := newMatch(t)
+	if m.WinnerIndex("p1", ReportWin) != 0 || m.WinnerIndex("p2", ReportLose) != 0 || m.WinnerIndex("p2", ReportWin) != 1 || m.WinnerIndex("p1", ReportCancel) != -1 {
+		t.Fatal("WinnerIndex が正しくない")
+	}
+	// 「p1 の勝ち」と「p2 の負け」は同じ内容に署名することになる
+	if string(m.Statement(m.WinnerIndex("p1", ReportWin)).Bytes()) != string(m.Statement(m.WinnerIndex("p2", ReportLose)).Bytes()) {
+		t.Fatal("両者の署名対象が一致しない")
+	}
+	if _, err := m.Record(); err == nil {
+		t.Fatal("確定前に記録を作れた")
+	}
+	_, _ = m.SubmitReport("p1", ReportWin, "sig1", t0)
+	_, _ = m.SubmitReport("p2", ReportLose, "sig2", t0)
+	r, err := m.Record()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Winner != 0 || r.Signatures[0].Sig != "sig1" || r.Signatures[1].Sig != "sig2" || r.Picks[0].Characters[1] != "fox" || r.HostInstance != "https://a.example" {
+		t.Errorf("記録 = %+v", r)
 	}
 }

@@ -41,8 +41,12 @@ func run() error {
 		return err
 	}
 
-	app := bootstrap.New(cfg, db, nil)
+	app, err := bootstrap.New(cfg, db, nil)
+	if err != nil {
+		return err
+	}
 	go app.RunSweeper(ctx, 30*time.Second)
+	go app.RunFederationSync(ctx, cfg.SyncInterval)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,
@@ -55,7 +59,7 @@ func run() error {
 		defer cancel()
 		_ = srv.Shutdown(shutdownCtx)
 	}()
-	slog.Info("listening", "addr", cfg.HTTPAddr, "devLogin", cfg.DevLoginEnabled, "discord", cfg.DiscordEnabled())
+	slog.Info("listening", "addr", cfg.HTTPAddr, "instance", cfg.InstanceURL, "peers", cfg.Peers, "devLogin", cfg.DevLoginEnabled, "discord", cfg.DiscordEnabled())
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}

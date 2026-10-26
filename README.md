@@ -10,14 +10,14 @@ Smash-hub は、大乱闘スマッシュブラザーズ SPECIAL のプレイヤ�
 > 「大乱闘スマッシュブラザーズ」は任天堂株式会社の登録商標です。
 
 > [!NOTE]
-> 現在は **開発初期** です。1台のサーバーで対戦の一連の流れ（ログイン → マッチング → 結果報告 → レート反映）が動く段階で、分散（連合）の機能はこれからです。開発に参加してくれる仲間を募集しています → [コントリビューションガイド](CONTRIBUTING.md)
+> 現在は **開発初期** です。対戦の一連の流れ（ログイン → マッチング → 結果報告 → レート反映）が動き、2つのインスタンスが連合プロトコルで対戦記録を複製し合い、インスタンスをまたいで対戦できます。アカウントの引っ越しやログの再配布などはこれからです。開発に参加してくれる仲間を募集しています → [コントリビューションガイド](CONTRIBUTING.md)
 
 ## ローカルで動かす
 
 Docker があれば、次のコマンドで起動できます。
 
 ```bash
-make up   # http://localhost:8080
+make up   # Instance1: http://localhost:8080 / Instance2: http://localhost:8090
 ```
 
 開発用ログイン（名前を入れるだけ）で複数の利用者を試せます。なお、現在の画面は **動作検証用の仮 UI** です（正式なデザインは [#10](https://github.com/tacky0612/smash-hub/issues/10)）。詳しくは [CONTRIBUTING.md](CONTRIBUTING.md#開発環境) を参照してください。
@@ -110,7 +110,7 @@ smash-hub/
 | [運営ポリシー](docs/policy.md) | 商標・素材・非営利・プライバシーの方針 |
 | [ロードマップ](docs/roadmap.md) | スモールスタートで分散システムに育てる計画 |
 | [アーキテクチャ概要](docs/architecture/overview.md) | 分散システム全体像 |
-| [連合プロトコル](docs/architecture/federation.md) | サーバー間で記録を共有する仕組み |
+| [連合プロトコル](docs/architecture/federation.md) | サーバー間で記録を共有する仕組み（[図解](docs/architecture/federation-walkthrough.md)） |
 | [バックエンド設計](docs/architecture/backend.md) | クリーンアーキテクチャ + DDD |
 | [フロントエンド設計](docs/architecture/frontend.md) | UI の方針 |
 | [ドメインモデル](docs/domain/README.md) | ユビキタス言語・境界づけられたコンテキスト |

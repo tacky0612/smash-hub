@@ -29,11 +29,20 @@ func (p Postgres) States() domain.OAuthStateRepository   { return stateRepo(p) }
 
 type accountRepo Postgres
 
-func (r accountRepo) Create(ctx context.Context, a domain.Account) error {
+func (r accountRepo) Create(ctx context.Context, a domain.Account, publicKey, sealedPrivateKey []byte) error {
 	_, err := r.DB.Q(ctx).Exec(ctx,
-		`INSERT INTO accounts (id, display_name, main_fighter, created_at) VALUES ($1, $2, $3, $4)`,
-		a.ID, a.DisplayName, a.MainFighter, a.CreatedAt)
+		`INSERT INTO accounts (id, display_name, main_fighter, created_at, public_key, sealed_private_key) VALUES ($1, $2, $3, $4, $5, $6)`,
+		a.ID, a.DisplayName, a.MainFighter, a.CreatedAt, publicKey, sealedPrivateKey)
 	return err
+}
+
+func (r accountRepo) SealedPrivateKey(ctx context.Context, id shared.AccountID) ([]byte, error) {
+	var key []byte
+	err := r.DB.Q(ctx).QueryRow(ctx, `SELECT sealed_private_key FROM accounts WHERE id = $1`, id).Scan(&key)
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && len(key) == 0) {
+		return nil, shared.ErrNotFound
+	}
+	return key, err
 }
 
 func (r accountRepo) Get(ctx context.Context, id shared.AccountID) (domain.Account, error) {

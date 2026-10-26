@@ -11,7 +11,7 @@ Smash-hub is a **federated, non-profit, open-source** platform where *Super Smas
 > "Super Smash Bros." is a registered trademark of Nintendo Co., Ltd.
 
 > [!NOTE]
-> The project is at an **early stage**. A single server already runs the full match flow (login → matchmaking → result reports → rating update); federation is not implemented yet. Run it locally with `make up` (Docker required) and open http://localhost:8080. The current screens are a **provisional UI for functional testing only**; the real UI design is tracked in [#10](https://github.com/tacky0612/smash-hub/issues/10). We are looking for contributors. Most documentation is written in Japanese; English contributions and questions are welcome too.
+> The project is at an **early stage**. The full match flow (login → matchmaking → result reports → rating update) runs, and two instances already replicate signed match records and match players across instances using the federation protocol. Run it locally with `make up` (Docker required) and open http://localhost:8080 (Instance1) and http://localhost:8090 (Instance2). The current screens are a **provisional UI for functional testing only**; the real UI design is tracked in [#10](https://github.com/tacky0612/smash-hub/issues/10). We are looking for contributors. Most documentation is written in Japanese; English contributions and questions are welcome too.
 
 ## Why
 

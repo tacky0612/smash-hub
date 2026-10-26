@@ -37,7 +37,7 @@ jobs:
       - name: gofmt
         run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
       - name: vet
-        run: go vet ./... && go vet -tags=integration ./...
+        run: go vet ./... && go vet -tags=integration ./... && go vet -tags=e2e ./...
       - name: 単体テスト
         run: go test -race ./...
       - name: 結合テスト（PostgreSQL）
@@ -61,9 +61,26 @@ jobs:
       - name: 型チェックとビルド
         run: npm run build
 
-  docker:
+  # 2つのインスタンスを Docker で立ち上げ、連合プロトコルでの対戦の一連の流れを検証する
+  e2e:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: イメージのビルド
-        run: docker compose build
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: 2つのインスタンスを起動
+        run: docker compose up --build -d --wait
+      - name: E2E テスト（Instance1 ⇔ Instance2）
+        working-directory: backend
+        env:
+          INSTANCE1_URL: http://localhost:8080
+          INSTANCE2_URL: http://localhost:8090
+        run: go test -tags=e2e -count=1 -v ./e2e/...
+      - name: 失敗時のログ
+        if: failure()
+        run: docker compose logs backend1 backend2 web1 web2
+      - name: 停止
+        if: always()
+        run: docker compose down -v

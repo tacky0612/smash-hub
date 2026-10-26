@@ -1,6 +1,6 @@
 # 連合プロトコル
 
-> ステータス: **Draft**（議論中）。ワイヤーフォーマットと API は最小実装時に確定します。独自プロトコルとすることは [ADR 0006](../adr/0006-custom-federation-protocol.md) で決定済みです。
+> ステータス: **Draft**（議論中）。ワイヤーフォーマットと API は最小実装時に確定します。全体の流れを図で知りたい場合は [図解](federation-walkthrough.md) を参照してください。独自プロトコルとすることは [ADR 0006](../adr/0006-custom-federation-protocol.md) で決定済みです。
 
 Smash-hub の連合プロトコルは、個別のサイトやインスタンスがそれぞれ独自の UI を持ちながらも、同じ対戦事実と同じレーティング計算ルールを共有できるようにするための仕様です。Smash-hub のソフトウェアを使うインスタンスだけでなく、このプロトコルを独自に実装した他のサイトも参加できます。
 
@@ -68,7 +68,7 @@ seq=5  MatchVoided        (無効化イベント)                   prev=h(4)   
 - 確定した対戦記録
   - 対戦日時（played_at）
   - 参加者（`players`: アカウント ID のみ）
-  - 使用キャラクター（`picks`: ゲームごとの数値のファイター ID。参加者とは別の項目にする → [ファイター ID](../domain/fighters.md)）
+  - 使用キャラクター（`picks`: ゲームごとのファイター ID。参加者とは別の項目にする → [ファイター ID](../domain/fighters.md)）
   - 勝敗
   - 対戦ルール（Ruleset の ID とバージョン）
   - 署名
@@ -294,61 +294,106 @@ sequenceDiagram
 
 ## 11. 最小 API
 
-最小実装では、次の API を定義する。
+| API | 認証 | 実装 | 用途 |
+|---|---|---|---|
+| `GET /federation/instance` | なし（公開） | ✅ | インスタンスの公開情報 |
+| `GET /federation/log` | なし（公開） | ✅ | 追記専用ログの差分（pull 同期） |
+| `POST /federation/match-requests` | インスタンス署名 | ✅ | 対戦募集の配信（Phase 4） |
+| `DELETE /federation/match-requests/{id}` | インスタンス署名 | ✅ | 配信した募集の取り消し（Phase 4） |
+| `POST /federation/match-claims` | インスタンス署名 | ✅ | ホストへの対戦の申し込み（Phase 4） |
+| `GET /federation/matches/{id}` | インスタンス署名 | ✅ | 進行中の対戦の状態（参加者のホームインスタンスだけ取得できる。Phase 4） |
+| `POST /federation/match-reports` | インスタンス署名 | ✅ | 結果報告の中継（Phase 4） |
+| `GET /federation/accounts` | なし（公開） | 未実装 | 参照用（ログから導出） |
+| `GET /federation/snapshot` | なし（公開） | 未実装 | スナップショット（→ 8.3） |
 
 ### 11.1 GET /federation/instance
-インスタンスの公開情報を返します。
+
+インスタンスの公開情報を返します。`instance_id` は連合先から到達できるベース URL で、`PEERS`（許可リスト）に書く値と一致させます。`public_key` はインスタンスの Ed25519 公開鍵（base64）で、受信側は初回に取得して固定します。
 
 ```json
 {
   "instance_id": "https://a.example",
   "name": "A instance",
-  "public_key": "base64_public_key",
-  "homepage_url": "https://a.example",
-  "federation_policy": "https://a.example/policy"
+  "public_key": "base64_public_key"
 }
 ```
 
 ### 11.2 GET /federation/log
-差分ログを返します。
 
-クエリ:
-- since: 取得開始の seq
-- limit: 取得件数上限
-- include_unsupported: 省略時 false
+自インスタンスのログを、`since` の次の seq から返します（`limit` は既定 100・最大 500）。`events` の各要素は、署名済みイベントの正規化 JSON そのものです。
 
 ```json
 {
   "instance_id": "https://a.example",
-  "from_seq": 120,
-  "to_seq": 220,
-  "events": [ ... ]
+  "events": [ { "type": "AccountPublished", "seq": 1, "...": "..." } ]
 }
 ```
 
-### 11.3 GET /federation/accounts
-公開アカウント情報の一覧または差分を返します。
+受信側は 6.3 の順で検証し、成功したイベントだけを取り込みます。検証に失敗した場合はそのイベント以降を取り込まず、理由を記録して次回に再試行します。現在の実装では、自インスタンスが発行したイベントだけを配信します（再配布 → 8.2 は未実装）。
 
-### 11.4 GET /federation/matches
-特定条件の対戦記録を返します。
+### 11.3 インスタンス間リクエストの署名
 
-クエリ:
-- season_id（played_at から判定したシーズン）
-- since
-- account_id
-- match_id
+`/federation/instance` と `/federation/log` 以外の API は、送信元インスタンスの鍵で署名したリクエストだけを受け付けます。
 
-`/federation/accounts` と `/federation/matches` は利用しやすさのための参照用 API です。正はあくまで `/federation/log` のイベントで、これらの API の結果もログから導出します。
+| ヘッダー | 内容 |
+|---|---|
+| `X-Smash-Hub-Instance` | 送信元のインスタンス ID（許可リストにあること） |
+| `X-Smash-Hub-Date` | 送信日時（RFC 3339）。受信側の時刻と 5分以上ずれていたら拒否（再送攻撃の対策） |
+| `X-Smash-Hub-Signature` | 次の文字列への Ed25519 署名（base64）: `メソッド` `\n` `パスとクエリ` `\n` `日時` `\n` `本文の SHA-256（16進）` |
+
+### 11.4 インスタンスをまたぐ対戦（Phase 4）
+
+```mermaid
+sequenceDiagram
+  actor A as alice（Instance1）
+  participant I1 as Instance1（ホスト）
+  participant I2 as Instance2
+  actor B as bob（Instance2）
+  A->>I1: 対戦相手を探す（待機）
+  I1->>I2: POST /federation/match-requests（募集を配信。待機中は配信し直して有効期限を延ばす）
+  B->>I2: 対戦相手を探す
+  I2->>I1: POST /federation/match-claims（申し込み）
+  I1->>I1: 行ロックを取り、先着1件だけ承認して対戦を作る
+  I1-->>I2: match_id
+  I1->>I2: DELETE /federation/match-requests/{id}（配信の取り消し）
+  B->>I2: 対戦ルームを開く
+  I2->>I1: GET /federation/matches/{id}（部屋 ID 等を取得）
+  A->>I1: 結果を報告（alice の鍵で署名）
+  B->>I2: 結果を報告
+  I2->>I1: POST /federation/match-reports（bob の鍵で署名した報告を中継）
+  I1->>I1: 報告が一致 → MatchRecorded をログに追記
+  I2->>I1: GET /federation/log（pull で取り込み、同じレートを計算）
+```
+
+- **募集の配信**: 待機中の募集（ID・アカウント ID・1戦目のファイター・レート差の条件・申告レート・作成日時）を連合先へ配信します。受信側は 30秒で失効させ、配信元は待機中の状態確認のたびに配信し直します。
+- **申し込み**: 自インスタンスに条件に合う相手がいなければ、配信された募集のうち **自分より先に作られたもの** に申し込みます（先に待っていた側がホストになり、双方が同時に申し込み合うのを防ぐ）。
+- **レートの判定**: 申告されたレートは使わず、各インスタンスが対戦記録から計算したレートで条件を判定します。
+- **承認**: ホストは募集に行ロックを取り、待機中で条件を満たす場合だけ先着1件を承認します。二重にマッチしません。
+- **状態の取得**: ホストは、プレイヤー2のホームインスタンスからの要求にだけ対戦の状態（部屋 ID を含む）を返します。
 
 ### 11.5 POST /federation/match-reports（Phase 4）
 
 インスタンスをまたぐ対戦で、プレイヤーの **結果報告（署名付き）をホームインスタンスからホストインスタンスへ中継する** ための API です。
 
 - 送信できるのは、対戦の当事者のホームインスタンスだけ（インスタンス署名付きのリクエストで検証する）
-- 入力は、対戦 ID・報告（勝ち / 負け / 中止）・プレイヤーの署名
-- ホストは両者の報告が一致した時点で対戦を確定し、**自分のログに** `MatchRecorded` として追記する
+- 入力は、対戦 ID・アカウント ID・報告（`win` / `lose` / `cancel`）・プレイヤーの署名
+- プレイヤーの署名の対象は、その報告が示す勝者を `winner` とした **対戦結果の内容**（`MatchRecorded` の payload から `signatures` を除いたもの。→ 12）の正規化 JSON です。「プレイヤー1の勝ち」と「プレイヤー2の負け」は同じ内容への署名になるため、報告が一致すれば2人の署名がそろいます。中止の報告には署名しません
+- ホストは署名を検証し、両者の報告が一致した時点で対戦を確定し、**自分のログに** `MatchRecorded` として追記する
 
 **対戦記録（`MatchRecorded`）を作れるのは、その対戦のホストインスタンスだけです。** 他のインスタンスから対戦記録そのものを受け取って登録する API は設けません。他のインスタンスはホストのログを pull して取り込みます。これにより、記録の発行元が常にホストのログに一意に定まり、外部から記録を注入されることを防ぎます。
+
+### 11.6 AccountPublished の payload
+
+```json
+{
+  "account_id": "did:key:z6MkAlice...",
+  "display_name": "alice",
+  "home_instance": "https://a.example",
+  "account_sig": "base64_account_sig"
+}
+```
+
+`account_sig` は `account_sig` を除いた payload の正規化 JSON への、アカウント自身の鍵での署名です（→ 4.3）。アカウント登録時とプロフィール変更時に発行します。
 
 ## 12. 例: MatchRecorded
 
@@ -369,8 +414,8 @@ sequenceDiagram
       { "account_id": "did:key:z6MkBob..." }
     ],
     "picks": [
-      { "game": 1, "characters": [1, 8] },
-      { "game": 2, "characters": [1, 9] }
+      { "game": 1, "characters": ["mario", "fox"] },
+      { "game": 2, "characters": ["mario", "pikachu"] }
     ],
     "winner": 0,
     "host_instance": "https://a.example",
@@ -384,7 +429,7 @@ sequenceDiagram
 ```
 
 - `players` はプレイヤーの識別だけを持つ（アカウント ID）。順番はプレイヤー1（部屋を立てた側）、プレイヤー2 の順。`winner` は `players` の添字
-- `picks` は使用キャラクターを **プレイヤーとは別の項目** としてゲームごとに持つ。`characters` の並びは `players` と同じ順番。値は **数値のファイター ID**（例: 1 = マリオ、8 = フォックス、9 = ピカチュウ。対応表は [ファイター ID](../domain/fighters.md)）。表示名や画像は持たない
+- `picks` は使用キャラクターを **プレイヤーとは別の項目** としてゲームごとに持つ。`characters` の並びは `players` と同じ順番。値は **ファイター ID**（`mario` のような英小文字の識別子。対応表は [ファイター ID](../domain/fighters.md)）。日本語の表示名や画像は持たない
 - `picks` には少なくとも1戦目（`game: 1`）を含める。2戦目以降は、ゲームごとの記録を実装したら含める
 - 表示名は含めない（→ 4.2）
 - ホストの署名はイベントヘッダの `sig`（ホストインスタンスの署名）で兼ねる
