@@ -10,6 +10,7 @@ import (
 )
 
 // Account はプレイヤーのアカウント。個人情報は持たず、利用者が入力した公開情報だけを持つ。
+// ID は公開鍵から導出した did:key で、連合全体で一意（docs/architecture/federation.md 4.1）。
 type Account struct {
 	ID          shared.AccountID
 	DisplayName string
@@ -57,7 +58,10 @@ func (s Session) Registered() bool { return s.AccountID != "" }
 
 // AccountRepository はアカウントの永続化。
 type AccountRepository interface {
-	Create(ctx context.Context, a Account) error
+	// Create はアカウントと署名鍵（公開鍵と、暗号化した秘密鍵）を保存する。
+	Create(ctx context.Context, a Account, publicKey, sealedPrivateKey []byte) error
+	// SealedPrivateKey は暗号化した秘密鍵を返す。
+	SealedPrivateKey(ctx context.Context, id shared.AccountID) ([]byte, error)
 	Get(ctx context.Context, id shared.AccountID) (Account, error)
 	Update(ctx context.Context, a Account) error
 }

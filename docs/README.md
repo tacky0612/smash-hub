@@ -15,6 +15,7 @@ Smash-hub の設計・方針・計画をまとめたドキュメント群です�
 |---|---|
 | [architecture/overview.md](architecture/overview.md) | システム全体像と主要な設計原則 |
 | [architecture/federation.md](architecture/federation.md) | サーバー間連携（連合）プロトコル |
+| [architecture/federation-walkthrough.md](architecture/federation-walkthrough.md) | 図解: 複数のインスタンスが勝敗記録とレートを共有する仕組み |
 | [architecture/backend.md](architecture/backend.md) | バックエンドのクリーンアーキテクチャ + DDD 構成 |
 | [architecture/frontend.md](architecture/frontend.md) | フロントエンドの方針 |
 
@@ -23,6 +24,7 @@ Smash-hub の設計・方針・計画をまとめたドキュメント群です�
 | ドキュメント | 内容 |
 |---|---|
 | [domain/README.md](domain/README.md) | ユビキタス言語と境界づけられたコンテキスト |
+| [domain/fighters.md](domain/fighters.md) | ファイター ID とファイターの対応表 |
 | [domain/match-rules.md](domain/match-rules.md) | レーティング対戦のルール（スマメイトのルールを踏襲） |
 | [domain/rating.md](domain/rating.md) | 分散環境でのレーティング算出 |
 

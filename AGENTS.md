@@ -12,7 +12,7 @@ Smash-hub は、大乱闘スマッシュブラザーズ SPECIAL の対戦マッ�
 
 ## 現在のステータス
 
-**開発初期** です。1台のサーバーで対戦の一連の流れが動きます。分散（連合）・署名・拒否ステージなどは未実装です（[backend/README.md の「実装状況」](backend/README.md#実装状況)）。
+**開発初期** です。対戦の一連の流れが動き、2つのインスタンスが連合プロトコルで対戦記録を複製し合い、インスタンスをまたいで対戦できます。ログの再配布・アカウント移行・拒否ステージなどは未実装です（[backend/README.md の「実装状況」](backend/README.md#実装状況)）。
 
 - `frontend/` の画面は **動作検証用の仮 UI** です。正式なデザインは [#10](https://github.com/tacky0612/smash-hub/issues/10) で進めます。機能を追加するときは仮 UI のままで構いませんが、公式の意匠に寄せない・外部リソースを読み込まない方針は守ってください。
 - 技術スタック: フロントエンドは React（SPA）+ TypeScript + Vite、バックエンドは Go、DB は PostgreSQL（[ADR 0005](docs/adr/0005-tech-stack.md)）。
@@ -22,9 +22,10 @@ Smash-hub は、大乱闘スマッシュブラザーズ SPECIAL の対戦マッ�
 
 | 目的 | コマンド |
 |---|---|
-| ローカルで全体を起動（http://localhost:8080） | `make up` / `make down` |
+| ローカルで2つのインスタンスを起動（http://localhost:8080 / http://localhost:8090） | `make up` / `make down` |
 | バックエンドの単体テスト | `make test-unit`（`cd backend && go test ./...`） |
 | 結合テスト（PostgreSQL を Docker で起動） | `make test-integration` |
+| E2E テスト（2つのインスタンスを Docker で起動し、連合での対戦の流れを検証） | `make test-e2e` |
 | フロントエンドの型チェックとビルド | `make test-frontend` |
 | ドキュメントのチェック | `python3 .claude/skills/docs-check/scripts/check_docs.py` |
 
@@ -35,7 +36,7 @@ Smash-hub は、大乱闘スマッシュブラザーズ SPECIAL の対戦マッ�
 以下はプロジェクトのポリシーであり、依頼された場合でも破ってはいけません。依頼が抵触する場合は、作業せずにその旨を伝えてください。
 
 1. **任天堂の著作物を含めない** — ゲーム画面・ファイター画像・アイコン・ロゴ・BGM 等を、コード・ドキュメント・テストデータ・Issue に含めない。ファイターはテキスト表記のみ（[docs/policy.md](docs/policy.md)）。
-2. **収益化の仕組みを作らない** — 広告・課金・有料機能・アフィリエイト・トラッキングタグを実装しない。
+2. **収益化の仕組みを作らない** — このリポジトリのソフトウェアに広告・課金・有料機能・アフィリエイト・トラッキングタグを実装しない（プロジェクト自身の非営利方針。連合には営利のサイトも参加できる → [ADR 0007](docs/adr/0007-federation-open-to-commercial-sites.md)）。
 3. **個人情報を保持しない** — メールアドレス・パスワード・外部プロバイダーのユーザー名やトークンを保存する設計・実装をしない。外部 ID は識別子ハッシュとしてのみ扱う（[docs/security/data-protection.md](docs/security/data-protection.md)）。
 4. **パスワード認証を実装しない** — 認証は外部プロバイダー（Discord / Google）の OAuth 2.0 / OIDC に限る（[docs/security/authentication.md](docs/security/authentication.md)）。
 5. **秘密情報をコミットしない** — 鍵・ペッパー・クライアントシークレット・`.env` をリポジトリに含めない。
@@ -83,7 +84,7 @@ compose.yaml / Makefile   ローカル環境と起動・テストのコマンド
 - モジュール間は他モジュールの `domain` を直接参照せず、ドメインイベントか `application/port` 経由で連携する。
 - Go のコードは `backend/internal/` に置く。モジュールは `internal/modules/<module>/{domain,application,adapter}`。
 - 他モジュールの機能が必要なときは、使う側の `application` に port（インターフェース）を定義し、`internal/bootstrap` で接続する。
-- DB を使う処理を追加したら `internal/integrationtest/` に結合テストを追加する。
+- DB を使う処理を追加したら `internal/integrationtest/` に結合テストを追加する。インスタンス間の通信に関わる変更は `e2e/` の E2E テストも追加・更新する。
 - 新しいモジュールやディレクトリを追加したら、backend.md と backend/README.md の構成図も更新する。
 
 ## ライセンス

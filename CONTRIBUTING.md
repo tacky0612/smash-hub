@@ -53,13 +53,17 @@ AI エージェントを使って開発する場合は [AGENTS.md](AGENTS.md) �
 必要なもの: [Docker](https://www.docker.com/)（Compose v2）。バックエンドを直接触る場合は Go 1.26 以上、フロントエンドを直接触る場合は Node.js 24 以上。
 
 ```bash
-make up                # 全体を起動（http://localhost:8080）
+make up                # 2つのインスタンスを起動（Instance1: http://localhost:8080 / Instance2: http://localhost:8090）
 make down              # 停止
 make logs              # ログを見る
 make test-unit         # バックエンドの単体テスト
 make test-integration  # バックエンドの結合テスト（PostgreSQL を Docker で起動）
+make test-e2e          # E2E テスト（2つのインスタンスで、連合での対戦の流れを検証）
 make test-frontend     # フロントエンドの型チェックとビルド
 ```
+
+- 2つのインスタンスは互いを連合先にしています。Instance1 と Instance2 にそれぞれ別の利用者でログインすると、インスタンスをまたいだ対戦と記録の複製を試せます。
+- データベースの形式を変えた後などに初期化したい場合は `docker compose down -v` で DB を消してから `make up` してください。
 
 - ローカル環境では **開発用ログイン**（名前を入れるだけ）が有効です。ブラウザのシークレットウィンドウや別のブラウザを使うと、2人目の利用者として対戦を試せます。
 - Discord ログインを試す場合は、Discord Developer Portal でアプリを作り、`DISCORD_CLIENT_ID`・`DISCORD_CLIENT_SECRET`・`DISCORD_REDIRECT_URL`（`http://localhost:8080/api/auth/discord/callback`）を環境変数で渡して `make up` してください。

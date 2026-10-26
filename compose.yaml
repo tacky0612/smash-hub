@@ -1,47 +1,107 @@
 # ローカルでの動作確認用。本番の構成ではありません。
-# 起動: make up（http://localhost:8080）
+# 起動: make up
+#   Instance1: http://localhost:8080
+#   Instance2: http://localhost:8090
+# 2つのインスタンスは互いを連合先（PEERS）にしており、連合プロトコル（docs/architecture/federation.md）で
+# 対戦記録を複製し合い、インスタンスをまたいでマッチングできます。
+#
+# 注意: ここに書いている鍵・ペッパー・暗号化鍵はローカル専用の固定値です。本番では必ずランダムな値を別途設定してください。
 name: smash-hub
 
-services:
-  db:
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_USER: smashhub
-      POSTGRES_PASSWORD: smashhub
-      POSTGRES_DB: smashhub
-    volumes:
-      - db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U smashhub -d smashhub"]
-      interval: 2s
-      timeout: 3s
-      retries: 30
+x-backend-env: &backend-env
+  APP_ENV: development
+  HTTP_ADDR: ":8081"
+  COOKIE_SECURE: "false"
+  DEV_LOGIN_ENABLED: "true"
+  RANKING_MIN_MATCHES: ${RANKING_MIN_MATCHES:-1}
+  FEDERATION_SYNC_INTERVAL: ${FEDERATION_SYNC_INTERVAL:-2s}
 
-  backend:
+x-db: &db
+  image: postgres:17-alpine
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U smashhub -d smashhub"]
+    interval: 2s
+    timeout: 3s
+    retries: 30
+  environment:
+    POSTGRES_USER: smashhub
+    POSTGRES_PASSWORD: smashhub
+    POSTGRES_DB: smashhub
+
+x-web-healthcheck: &web-healthcheck
+  # バックエンドと DB まで含めて応答できることを確認する
+  test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/api/health | grep -q ok"]
+  interval: 2s
+  timeout: 3s
+  retries: 60
+
+services:
+  # ---- Instance1 ----
+  db1:
+    <<: *db
+    volumes:
+      - db1-data:/var/lib/postgresql/data
+
+  backend1:
     build: ./backend
     environment:
-      APP_ENV: development
-      HTTP_ADDR: ":8081"
-      DATABASE_URL: postgres://smashhub:smashhub@db:5432/smashhub?sslmode=disable
+      <<: *backend-env
+      DATABASE_URL: postgres://smashhub:smashhub@db1:5432/smashhub?sslmode=disable
       PUBLIC_BASE_URL: http://localhost:8080
-      COOKIE_SECURE: "false"
-      # ローカル専用の値。本番では必ずランダムな値を別途設定する
-      IDENTIFIER_PEPPER: local-development-pepper-not-for-production
-      DEV_LOGIN_ENABLED: "true"
-      RANKING_MIN_MATCHES: ${RANKING_MIN_MATCHES:-1}
+      INSTANCE_URL: http://backend1:8081
+      INSTANCE_NAME: Instance1
+      PEERS: http://backend2:8081
+      INSTANCE_PRIVATE_KEY: jq74VABibHG5G0WebF+yxV26+s3wgri0KjKv7e67VsU=
+      IDENTIFIER_PEPPER: local-development-pepper-instance1-not-for-production
+      ACCOUNT_KEY_SECRET: local-development-account-key-instance1-not-for-production
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
       DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
       DISCORD_REDIRECT_URL: ${DISCORD_REDIRECT_URL:-}
     depends_on:
-      db:
+      db1:
         condition: service_healthy
 
-  web:
+  web1:
     build: ./frontend
+    environment:
+      BACKEND_URL: http://backend1:8081
     ports:
       - "8080:80"
+    healthcheck: *web-healthcheck
     depends_on:
-      - backend
+      - backend1
+
+  # ---- Instance2 ----
+  db2:
+    <<: *db
+    volumes:
+      - db2-data:/var/lib/postgresql/data
+
+  backend2:
+    build: ./backend
+    environment:
+      <<: *backend-env
+      DATABASE_URL: postgres://smashhub:smashhub@db2:5432/smashhub?sslmode=disable
+      PUBLIC_BASE_URL: http://localhost:8090
+      INSTANCE_URL: http://backend2:8081
+      INSTANCE_NAME: Instance2
+      PEERS: http://backend1:8081
+      INSTANCE_PRIVATE_KEY: LxrRJXMtnEj8sHyHLjojwCEDC61qnHAyhr3f7rHOcVs=
+      IDENTIFIER_PEPPER: local-development-pepper-instance2-not-for-production
+      ACCOUNT_KEY_SECRET: local-development-account-key-instance2-not-for-production
+    depends_on:
+      db2:
+        condition: service_healthy
+
+  web2:
+    build: ./frontend
+    environment:
+      BACKEND_URL: http://backend2:8081
+    ports:
+      - "8090:80"
+    healthcheck: *web-healthcheck
+    depends_on:
+      - backend2
 
   # 結合テスト用の DB（make test-integration で使う）。データはメモリ上に置き、毎回捨てる
   db-test:
@@ -62,4 +122,5 @@ services:
       retries: 30
 
 volumes:
-  db-data:
+  db1-data:
+  db2-data:

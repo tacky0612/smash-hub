@@ -28,6 +28,19 @@ type Tokens interface {
 	Hash(token string) string
 }
 
+// KeyManager はアカウントの署名鍵を扱う。秘密鍵は暗号化した状態でだけ保存する。
+type KeyManager interface {
+	// Generate は鍵ペアを作り、公開鍵から導出したアカウント ID・公開鍵・暗号化した秘密鍵を返す。
+	Generate() (id shared.AccountID, publicKey, sealedPrivateKey []byte)
+	Sign(sealedPrivateKey, msg []byte) (string, error)
+}
+
+// AccountEvents はアカウントの公開情報が変わったことを連合に伝える（federation コンテキストが実装する）。
+// sign はアカウント自身の鍵で署名する関数。
+type AccountEvents interface {
+	AccountChanged(ctx context.Context, a domain.Account, sign func(msg []byte) (string, error)) error
+}
+
 // OAuthProvider は外部プロバイダーの OAuth 2.0 クライアント。
 type OAuthProvider interface {
 	AuthCodeURL(state, verifier string) string
@@ -44,6 +57,8 @@ type Service struct {
 	Hasher     IdentifierHasher
 	Tokens     Tokens
 	Clock      shared.Clock
+	Keys       KeyManager
+	Events     AccountEvents // 未設定なら連合に伝えない
 	Discord    OAuthProvider // 未設定なら nil
 }
 
@@ -144,7 +159,8 @@ func (s *Service) Register(ctx context.Context, sess domain.Session, displayName
 		return domain.Account{}, shared.ErrConflict
 	}
 	now := s.Clock.Now()
-	a, err := domain.NewAccount(shared.AccountID(shared.NewID()), strings.TrimSpace(displayName), mainFighter, now)
+	id, pub, sealed := s.Keys.Generate()
+	a, err := domain.NewAccount(id, strings.TrimSpace(displayName), mainFighter, now)
 	if err != nil {
 		return domain.Account{}, err
 	}
@@ -155,13 +171,16 @@ func (s *Service) Register(ctx context.Context, sess domain.Session, displayName
 		} else if !errors.Is(err, shared.ErrNotFound) {
 			return err
 		}
-		if err := s.Accounts.Create(ctx, a); err != nil {
+		if err := s.Accounts.Create(ctx, a, pub, sealed); err != nil {
 			return err
 		}
 		if err := s.Identities.Create(ctx, sess.IdentifierHash, sess.Provider, a.ID, now); err != nil {
 			return err
 		}
-		return s.Sessions.AttachAccount(ctx, sess.TokenHash, a.ID)
+		if err := s.Sessions.AttachAccount(ctx, sess.TokenHash, a.ID); err != nil {
+			return err
+		}
+		return s.publish(ctx, a)
 	})
 	return a, err
 }
@@ -177,9 +196,28 @@ func (s *Service) UpdateProfile(ctx context.Context, id shared.AccountID, displa
 		if err := a.ChangeProfile(strings.TrimSpace(displayName), mainFighter); err != nil {
 			return err
 		}
-		return s.Accounts.Update(ctx, a)
+		if err := s.Accounts.Update(ctx, a); err != nil {
+			return err
+		}
+		return s.publish(ctx, a)
 	})
 	return a, err
+}
+
+// SignAs はアカウント自身の鍵で msg に署名する（結果報告・アカウントの公開情報の署名に使う）。
+func (s *Service) SignAs(ctx context.Context, id shared.AccountID, msg []byte) (string, error) {
+	sealed, err := s.Accounts.SealedPrivateKey(ctx, id)
+	if err != nil {
+		return "", err
+	}
+	return s.Keys.Sign(sealed, msg)
+}
+
+func (s *Service) publish(ctx context.Context, a domain.Account) error {
+	if s.Events == nil {
+		return nil
+	}
+	return s.Events.AccountChanged(ctx, a, func(msg []byte) (string, error) { return s.SignAs(ctx, a.ID, msg) })
 }
 
 // GetAccount はアカウントを取得する。

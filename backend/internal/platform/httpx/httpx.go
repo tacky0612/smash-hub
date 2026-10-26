@@ -70,9 +70,10 @@ func AccountID(ctx context.Context) (domain.AccountID, error) {
 }
 
 // CSRF は GET / HEAD 以外のリクエストに CSRFHeader を要求する。
+// インスタンス間の API（/federation/）はブラウザからではなく、インスタンスの署名で検証するため対象外。
 func CSRF(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Header.Get(CSRFHeader) == "" {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead && !strings.HasPrefix(r.URL.Path, "/federation/") && r.Header.Get(CSRFHeader) == "" {
 			WriteJSON(w, http.StatusForbidden, map[string]string{"error": "csrf", "message": "不正なリクエストです"})
 			return
 		}

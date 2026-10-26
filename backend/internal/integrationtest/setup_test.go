@@ -49,7 +49,8 @@ func openDB(t *testing.T) *database.DB {
 func resetDB(t *testing.T, db *database.DB) {
 	t.Helper()
 	_, err := db.Pool.Exec(context.Background(),
-		`TRUNCATE ratings, match_requests, matches, oauth_states, sessions, external_identities, accounts`)
+		`TRUNCATE ratings, match_requests, matches, oauth_states, sessions, external_identities, accounts,
+		 federation_events, federation_peers, match_records, remote_accounts, remote_match_requests, remote_matches`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,6 +92,11 @@ func testConfig() config.Config {
 		SeasonID:          "TEST",
 		SeasonStart:       time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		RankingMinMatches: 1,
+		InstanceURL:       "http://instance.test",
+		InstanceName:      "test",
+		// テスト専用の固定値（32バイトのシードを base64 にしたもの）
+		InstancePrivateKey: "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+		AccountKeySecret:   []byte("integration-test-account-key-secret-0123456789"),
 	}
 }
 
@@ -100,7 +106,10 @@ func newEnv(t *testing.T) *env {
 	db := openDB(t)
 	resetDB(t, db)
 	clock := &fakeClock{now: time.Date(2026, 11, 1, 20, 0, 0, 0, time.UTC)}
-	app := bootstrap.New(testConfig(), db, clock)
+	app, err := bootstrap.New(testConfig(), db, clock)
+	if err != nil {
+		t.Fatal(err)
+	}
 	srv := httptest.NewServer(app.Handler)
 	t.Cleanup(srv.Close)
 	return &env{db: db, app: app, server: srv, clock: clock}

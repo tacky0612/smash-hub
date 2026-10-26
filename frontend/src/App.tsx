@@ -42,12 +42,13 @@ function RequireLogin({ children, registered = true }: { children: ReactNode; re
 }
 
 function Header() {
-  const { me } = useApp();
+  const { me, instance } = useApp();
   const registered = me?.loggedIn && me.registered;
   return (
     <header className="header">
       <Link to="/" className="brand">
         Smash-hub
+        {instance && instance.name !== "Smash-hub" && <span className="instance-name">{instance.name}</span>}
       </Link>
       <nav className="nav">
         {registered && <NavLink to="/">対戦</NavLink>}

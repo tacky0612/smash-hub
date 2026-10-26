@@ -42,6 +42,8 @@ type Request struct {
 	MatchID    shared.MatchID
 	CreatedAt  time.Time
 	LastSeenAt time.Time
+	// Origin は他インスタンスから配信された募集の配信元（自インスタンスの募集なら空）
+	Origin shared.InstanceID
 }
 
 // NewRequest は入力値を検証して募集を作る。
@@ -102,6 +104,8 @@ type Repository interface {
 	Save(ctx context.Context, r Request) error
 	// WaitingForUpdate は account の待機中の募集を行ロックを取って返す。なければ ErrNotFound。
 	WaitingForUpdate(ctx context.Context, account shared.AccountID) (Request, error)
+	// WaitingByIDForUpdate は待機中の募集を ID で行ロックを取って返す。他のトランザクションがロック中なら ErrNotFound。
+	WaitingByIDForUpdate(ctx context.Context, id string) (Request, error)
 	// CandidatesForUpdate は account 以外の、seenAfter 以降に確認のあった待機中の募集を古い順に返す。
 	// 他のトランザクションがロック中の募集は飛ばす。
 	CandidatesForUpdate(ctx context.Context, account shared.AccountID, seenAfter time.Time, limit int) ([]Request, error)

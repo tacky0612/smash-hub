@@ -22,6 +22,7 @@ type HTTP struct {
 	DevLoginEnabled bool
 	PublicBaseURL   string
 	SourceCodeURL   string
+	InstanceName    string
 }
 
 // AccountView はアカウントの公開情報。
@@ -63,7 +64,7 @@ func (h *HTTP) Middleware(next http.Handler) http.Handler {
 
 func (h *HTTP) instance(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{
-		"name":          "Smash-hub",
+		"name":          h.InstanceName,
 		"sourceCodeUrl": h.SourceCodeURL,
 		"loginProviders": map[string]bool{
 			"dev":     h.DevLoginEnabled,
