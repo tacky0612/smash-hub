@@ -30,7 +30,7 @@ Smash-hub is not an official successor of Smashmate. Its rating rules and formul
 ## Policies (summary)
 
 - **No unlicensed Nintendo assets.** No game screenshots, character images, official logos, or icons in the repository or the service. Fighters and stages are shown as text only.
-- **No monetization.** No ads, paid plans, or in-app purchases.
+- **The project makes no money.** No ads, paid plans, or in-app purchases are built into the software. Other sites, commercial or not, may join the federation if they agree to the server covenant; the project takes no responsibility for their commercial activities.
 - **No personal data.** Login is delegated to Discord / Google. Instances store no e-mail addresses, passwords, or external account names, only a one-way hashed identifier.
 
 ## Documentation
