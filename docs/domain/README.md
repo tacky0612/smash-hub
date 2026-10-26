@@ -98,30 +98,13 @@ stateDiagram-v2
 - `Confirmed` 以前の状態はホストインスタンスのローカルな状態であり、連合では共有しません。`Cancelled`・`Expired` はレートに影響せず、「対戦マナーの目安」の集計にのみ使います。
 - 進行のルールの詳細は [対戦ルール](match-rules.md) を参照してください。
 
-### 3.2 対戦記録（Match Record）の内容（案）
+### 3.2 対戦記録（Match Record）の内容
 
-```yaml
-id: <記録内容の正規化表現のハッシュ>
-host_instance: <ホストインスタンスID>
-ruleset: <ルールID とバージョン>
-played_at: <対戦開始日時>
-players:
-  - account_id: <アカウントID>
-    fighters: [<ファイターID>, ...]   # テキストの識別子。画像は持たない
-  - account_id: <アカウントID>
-    fighters: [...]
-games:
-  - winner: 0                          # players の添字
-    fighters: [<P0のファイターID>, <P1のファイターID>]
-    stage: <ステージID>                 # ゲーム内で決まったステージ
-  - ...
-winner: 0
-signatures:
-  - account_id: <P0>
-    sig: <P0 の署名>
-  - account_id: <P1>
-    sig: <P1 の署名>
-```
+対戦記録の項目は、連合で共有する形（`MatchRecorded` の payload）として [連合プロトコル](../architecture/federation.md) の「12. 例: MatchRecorded」に定義しています。要点は次のとおりです。
+
+- `players`（プレイヤーの識別。アカウント ID のみ）と `picks`（ゲームごとの使用キャラクター）を別の項目にする
+- 表示名など後から変更・削除されうる情報は入れない
+- 勝者は `players` の添字で表し、両プレイヤーの署名を持つ
 
 ## 4. 未解決の論点
 
