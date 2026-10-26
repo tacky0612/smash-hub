@@ -1,6 +1,6 @@
 # 技術者でなくてもインスタンスを立てられるようにする
 
-> ステータス: **議論中**。結論は ADR として記録します。ロードマップ Phase 0 のタスクです（議論: [#1](https://github.com/tacky0612/smash-hub/issues/1)）。
+> ステータス: **決定済み**。国内 VPS のスタートアップスクリプトで立ち上げる方式に決まりました（[ADR 0009](../adr/0009-deployment-vps-startup-script.md)）。以下は議論の記録です（議論: [#1](https://github.com/tacky0612/smash-hub/issues/1)）。
 
 ## 1. 背景
 
