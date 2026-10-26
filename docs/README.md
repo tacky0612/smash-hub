@@ -15,6 +15,7 @@ Smash-hub の設計・方針・計画をまとめたドキュメント群です�
 |---|---|
 | [architecture/overview.md](architecture/overview.md) | システム全体像と主要な設計原則 |
 | [architecture/federation.md](architecture/federation.md) | サーバー間連携（連合）プロトコル |
+| [architecture/federation-walkthrough.md](architecture/federation-walkthrough.md) | 図解: 複数のインスタンスが勝敗記録とレートを共有する仕組み |
 | [architecture/backend.md](architecture/backend.md) | バックエンドのクリーンアーキテクチャ + DDD 構成 |
 | [architecture/frontend.md](architecture/frontend.md) | フロントエンドの方針 |
 
