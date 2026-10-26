@@ -50,7 +50,8 @@ func resetDB(t *testing.T, db *database.DB) {
 	t.Helper()
 	_, err := db.Pool.Exec(context.Background(),
 		`TRUNCATE ratings, match_requests, matches, oauth_states, sessions, external_identities, accounts,
-		 federation_events, federation_peers, match_records, remote_accounts, remote_match_requests, remote_matches`)
+		 federation_events, federation_peers, match_records, remote_accounts, remote_match_requests, remote_matches,
+		 access_logs`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,17 +84,19 @@ type env struct {
 
 func testConfig() config.Config {
 	return config.Config{
-		Env:               "test",
-		PublicBaseURL:     "http://localhost",
-		SourceCodeURL:     "https://example.com/source",
-		CookieSecure:      false,
-		IdentifierPepper:  []byte("integration-test-pepper-0123456789abcdef"),
-		DevLoginEnabled:   true,
-		SeasonID:          "TEST",
-		SeasonStart:       time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-		RankingMinMatches: 1,
-		InstanceURL:       "http://instance.test",
-		InstanceName:      "test",
+		Env:                "test",
+		PublicBaseURL:      "http://localhost",
+		SourceCodeURL:      "https://example.com/source",
+		CookieSecure:       false,
+		IdentifierPepper:   []byte("integration-test-pepper-0123456789abcdef"),
+		DevLoginEnabled:    true,
+		ClientIPHeader:     "X-Real-IP",
+		AccessLogRetention: 14 * 24 * time.Hour,
+		SeasonID:           "TEST",
+		SeasonStart:        time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		RankingMinMatches:  1,
+		InstanceURL:        "http://instance.test",
+		InstanceName:       "test",
 		// テスト専用の固定値（32バイトのシードを base64 にしたもの）
 		InstancePrivateKey: "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
 		AccountKeySecret:   []byte("integration-test-account-key-secret-0123456789"),

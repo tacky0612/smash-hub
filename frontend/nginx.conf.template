@@ -4,12 +4,18 @@ server {
     server_name _;
     root /usr/share/nginx/html;
 
+    # アクセスログはバックエンドが DB に記録し、保持期間（初期値 14日）を過ぎたら削除する（docs/security/data-protection.md）。
+    # nginx のログは期限なく残るため、IP アドレスを含むアクセスログは出さない
+    access_log off;
+
     # add_header は location で再定義すると親の設定を引き継がないため、各 location で読み込む
     location /api/ {
         include /etc/nginx/snippets/security-headers.conf;
         proxy_pass ${BACKEND_URL};
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # 接続元の IP アドレス（レート制限・アクセスログに使う。バックエンドの CLIENT_IP_HEADER）
+        proxy_set_header X-Real-IP $remote_addr;
     }
 
     # インスタンス間の API（連合）。他のインスタンスから到達できるように公開する
@@ -18,6 +24,8 @@ server {
         proxy_pass ${BACKEND_URL};
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # 接続元の IP アドレス（レート制限・アクセスログに使う。バックエンドの CLIENT_IP_HEADER）
+        proxy_set_header X-Real-IP $remote_addr;
     }
 
     location /assets/ {

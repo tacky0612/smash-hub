@@ -18,7 +18,7 @@ internal/
 │   └── federation/   連合（署名付き追記専用ログ・pull 同期・検証・インスタンス間の対戦の受け口）
 │       （各モジュール: domain/ → application/ → adapter/）
 ├── shared/           共有カーネル
-├── platform/         フレームワーク & ドライバー（DB・HTTP・外部認証・暗号・設定）
+├── platform/         フレームワーク & ドライバー（DB・HTTP・レート制限・アクセスログ・外部認証・暗号・設定）
 ├── bootstrap/        依存の組み立て（モジュール間の port を接続する）
 └── integrationtest/  PostgreSQL と結合したテスト
 e2e/                  Docker で立てた2つのインスタンスに対する E2E テスト（連合での対戦の流れ）
@@ -48,7 +48,7 @@ e2e/                  Docker で立てた2つのインスタンスに対する E
 | レートを連合で共有された対戦記録から計算（取り込みの締め切り 7日） | ✅ |
 | インスタンスをまたぐ対戦（募集の配信・申し込み・状態の取得・報告の中継） | ✅ |
 | ログの再配布・スナップショット・鍵の更新・アカウント移行・MatchVoided | 未実装 |
-| レート制限・アクセスログの保持期間 | 未実装 |
+| レート制限・アクセスログの記録と保持期間（初期値 14日）での削除 | ✅ |
 
 ## 開発
 
@@ -83,6 +83,8 @@ TEST_DATABASE_URL=postgres://test:test@localhost:55432/smashhub_test?sslmode=dis
 | `SOURCE_CODE_URL` | | 画面に表示するソースコードの URL（AGPL-3.0 第13条。改変した場合は改変版を指定する） |
 | `COOKIE_SECURE` | | Cookie に Secure を付けるか（既定: `true`。ローカルの HTTP では `false`） |
 | `DEV_LOGIN_ENABLED` | | 開発用ログインを有効にするか（既定: `false`） |
+| `CLIENT_IP_HEADER` | | 接続元の IP アドレスを伝えるヘッダー。frontend の nginx の後ろに置く場合は `X-Real-IP`（ローカル環境で設定済み）。空なら接続元のアドレスを使う。**利用者が偽装できるヘッダーなので、バックエンドをプロキシの後ろにだけ置くときに設定する** |
+| `ACCESS_LOG_RETENTION_DAYS` | | アクセスログの保持期間（日。既定: 14。[データ保護](../docs/security/data-protection.md)） |
 | `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` / `DISCORD_REDIRECT_URL` | | Discord ログイン。リダイレクト URL は `<PUBLIC_BASE_URL>/api/auth/discord/callback` |
 | `SEASON_ID` / `SEASON_START` | | 現在のシーズン（既定: `S1` / `2026-01-01T00:00:00+09:00`） |
 | `RANKING_MIN_MATCHES` | | ランキング掲載に必要な対戦数（既定: 20。ローカル環境では 1） |

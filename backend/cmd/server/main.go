@@ -47,13 +47,16 @@ func run() error {
 	}
 	go app.RunSweeper(ctx, 30*time.Second)
 	go app.RunFederationSync(ctx, cfg.SyncInterval)
+	go app.AccessLog.Run(ctx, time.Second)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,
 		Handler:           app.Handler,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
+	shutdownDone := make(chan struct{})
 	go func() {
+		defer close(shutdownDone)
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -63,6 +66,11 @@ func run() error {
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
+	// 処理中のリクエストが終わるのを待ち、書き込み待ちのアクセスログを DB に書き込んでから止まる
+	<-shutdownDone
+	flushCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	app.AccessLog.Flush(flushCtx)
 	return nil
 }
 

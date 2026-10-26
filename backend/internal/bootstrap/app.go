@@ -20,11 +20,13 @@ import (
 	ratingadapter "github.com/tacky0612/smash-hub/backend/internal/modules/rating/adapter"
 	ratingapp "github.com/tacky0612/smash-hub/backend/internal/modules/rating/application"
 	ratingdomain "github.com/tacky0612/smash-hub/backend/internal/modules/rating/domain"
+	"github.com/tacky0612/smash-hub/backend/internal/platform/accesslog"
 	"github.com/tacky0612/smash-hub/backend/internal/platform/auth"
 	"github.com/tacky0612/smash-hub/backend/internal/platform/config"
 	"github.com/tacky0612/smash-hub/backend/internal/platform/crypto"
 	"github.com/tacky0612/smash-hub/backend/internal/platform/database"
 	"github.com/tacky0612/smash-hub/backend/internal/platform/httpx"
+	"github.com/tacky0612/smash-hub/backend/internal/platform/ratelimit"
 	shared "github.com/tacky0612/smash-hub/backend/internal/shared/domain"
 )
 
@@ -36,6 +38,10 @@ type App struct {
 	Matches     *matchapp.Service
 	Ratings     *ratingapp.Service
 	Federation  *fedapp.Service
+	AccessLog   *accesslog.Recorder
+
+	clock              shared.Clock
+	accessLogRetention time.Duration
 }
 
 // New は設定と DB からアプリケーションを組み立てる。clock は nil なら実時刻。
@@ -116,17 +122,30 @@ func New(cfg config.Config, db *database.DB, clock shared.Clock) (*App, error) {
 	(&ratingadapter.HTTP{Service: ratings, Names: dir}).Register(mux)
 	(&fedadapter.HTTP{Service: federation, Matchmaking: inboundMatchmaking{matchmaking}, Matches: inboundMatches{matches}}).Register(mux)
 
+	// 外側から: 接続元の IP → アクセスログ → CSRF → セッション → レート制限（IP とアカウントで数える）
+	accessLog := accesslog.NewRecorder(db, clock)
+	var handler http.Handler = ratelimit.New(clock).Middleware(mux)
+	handler = accountHTTP.Middleware(handler)
+	handler = httpx.CSRF(handler)
+	handler = accessLog.Middleware(handler)
+	handler = httpx.ClientIPFrom(cfg.ClientIPHeader)(handler)
+	handler = httpx.SecurityHeaders(handler)
+
 	return &App{
-		Handler:     httpx.SecurityHeaders(httpx.CSRF(accountHTTP.Middleware(mux))),
+		Handler:     handler,
 		Accounts:    accounts,
 		Matchmaking: matchmaking,
 		Matches:     matches,
 		Ratings:     ratings,
 		Federation:  federation,
+		AccessLog:   accessLog,
+
+		clock:              clock,
+		accessLogRetention: cfg.AccessLogRetention,
 	}, nil
 }
 
-// RunSweeper は期限切れの対戦と離脱した募集を定期的に片付ける。ctx が終わるまで戻らない。
+// RunSweeper は期限切れの対戦・離脱した募集・保持期間を過ぎたアクセスログを定期的に片付ける。ctx が終わるまで戻らない。
 func (a *App) RunSweeper(ctx context.Context, interval time.Duration) {
 	t := time.NewTicker(interval)
 	defer t.Stop()
@@ -143,8 +162,16 @@ func (a *App) RunSweeper(ctx context.Context, interval time.Duration) {
 			if _, err := a.Matchmaking.CancelStale(ctx); err != nil {
 				slog.Error("cancel stale requests", "err", err)
 			}
+			if _, err := a.PurgeAccessLogs(ctx); err != nil {
+				slog.Error("purge access logs", "err", err)
+			}
 		}
 	}
+}
+
+// PurgeAccessLogs は保持期間を過ぎたアクセスログを削除し、削除した件数を返す。
+func (a *App) PurgeAccessLogs(ctx context.Context) (int64, error) {
+	return a.AccessLog.Purge(ctx, a.clock.Now().Add(-a.accessLogRetention))
 }
 
 // RunFederationSync は連合先のログを定期的に取り込む（pull）。ctx が終わるまで戻らない。
