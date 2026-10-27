@@ -52,7 +52,8 @@ e2e/                  Docker で立てた2つのインスタンスに対する E
 | レートを連合で共有された対戦記録から計算（取り込みの締め切り 7日） | ✅ |
 | インスタンスをまたぐ対戦（募集の配信・申し込み・状態の取得・報告の中継） | ✅ |
 | 対戦記録の無効化（MatchVoided。記録のホストだけが対戦から 7日以内に発行し、連合先でもレート計算から除外） | ✅ |
-| ログの再配布・スナップショット・鍵の更新・アカウント移行 | 未実装 |
+| ログのスナップショットの出力と、スナップショットからのレートの再計算・突き合わせ（`server snapshot` / `server verify-snapshot`） | ✅（HTTP での配布は未実装） |
+| ログの再配布・鍵の更新・アカウント移行 | 未実装 |
 | レート制限・アクセスログの記録と保持期間（初期値 14日）での削除 | ✅ |
 
 ## 開発
@@ -67,6 +68,13 @@ make test-e2e          # E2E テスト（2つのインスタンスを Docker で
 ```
 
 `make up` では Instance1（http://localhost:8080）と Instance2（http://localhost:8090）が起動し、互いを連合先にします。E2E テスト（`e2e/`、build tag `e2e`）は2つのインスタンスの HTTP API を操作して、インスタンスをまたぐマッチング・報告の中継・記録の複製・両インスタンスでのレートの一致を検証します。CI でも同じテストを実行します。
+
+ログのスナップショット（[federation.md の 8.3](../docs/architecture/federation.md#83-スナップショット)）は、サーバーと同じバイナリのサブコマンドで出力・検証します。
+
+```bash
+go run ./cmd/server snapshot -o snapshot.json   # サーバーと同じ環境変数で DB に接続して書き出す
+go run ./cmd/server verify-snapshot snapshot.json  # DB 不要。ログを検証し、レートを再計算して突き合わせる
+```
 
 結合テストは build tag `integration` を付けたテストで、`TEST_DATABASE_URL` の DB を毎回空にして使います。本番や開発の DB を指定しないでください。
 

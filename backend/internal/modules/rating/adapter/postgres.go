@@ -54,6 +54,20 @@ func (p Postgres) Get(ctx context.Context, seasonID string, id shared.AccountID)
 	return s, err
 }
 
+// All はシーズンのすべてのプレイヤーの成績を、アカウント ID の順に返す（スナップショット用）。
+func (p Postgres) All(ctx context.Context, seasonID string) ([]domain.Standing, error) {
+	rows, err := p.DB.Q(ctx).Query(ctx,
+		`SELECT account_id, rating, matches, wins, losses FROM ratings WHERE season_id = $1 ORDER BY account_id`, seasonID)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (domain.Standing, error) {
+		var s domain.Standing
+		err := row.Scan(&s.AccountID, &s.Rating, &s.Matches, &s.Wins, &s.Losses)
+		return s, err
+	})
+}
+
 func (p Postgres) Ranking(ctx context.Context, seasonID string, minMatches, limit int) ([]domain.Standing, error) {
 	rows, err := p.DB.Q(ctx).Query(ctx,
 		`SELECT account_id, rating, matches, wins, losses FROM ratings

@@ -46,6 +46,9 @@ type App struct {
 
 	clock              shared.Clock
 	accessLogRetention time.Duration
+	db                 *database.DB
+	fedStore           fedadapter.Postgres
+	ratingStore        ratingadapter.Postgres
 }
 
 // New は設定と DB からアプリケーションを組み立てる。clock は nil なら実時刻。
@@ -95,8 +98,9 @@ func New(cfg config.Config, db *database.DB, clock shared.Clock) (*App, error) {
 	}
 
 	// レーティング・対戦・マッチング
+	ratingStore := ratingadapter.Postgres{DB: db}
 	ratings := &ratingapp.Service{
-		Standings:  ratingadapter.Postgres{DB: db},
+		Standings:  ratingStore,
 		Results:    confirmedResults{federation},
 		Season:     ratingdomain.Season{ID: cfg.SeasonID, Start: cfg.SeasonStart},
 		MinMatches: cfg.RankingMinMatches,
@@ -166,6 +170,9 @@ func New(cfg config.Config, db *database.DB, clock shared.Clock) (*App, error) {
 
 		clock:              clock,
 		accessLogRetention: cfg.AccessLogRetention,
+		db:                 db,
+		fedStore:           fedStore,
+		ratingStore:        ratingStore,
 	}, nil
 }
 

@@ -10,6 +10,7 @@
 #   smash-hub update [参照]       バックアップを取ってから、リポジトリを更新・再ビルド・再起動する
 #   smash-hub backup             DB のバックアップを取る（毎日 systemd timer からも実行される）
 #   smash-hub restore <ファイル>  バックアップから DB を復元する（今の DB の内容は消える）
+#   smash-hub snapshot           ログのスナップショット（公開の対戦記録とレート）を書き出す
 #   smash-hub check              設定ファイルを検証する
 #
 # 秘密情報（secrets.env の値）は標準出力・ログに出さない。
@@ -21,6 +22,7 @@ REPO_DIR="$SMASH_HUB_HOME/repo"
 CONFIG_FILE="$SMASH_HUB_HOME/smash-hub.env"
 SECRETS_FILE="$SMASH_HUB_HOME/secrets.env"
 BACKUP_DIR="$SMASH_HUB_HOME/backups"
+SNAPSHOT_DIR="$SMASH_HUB_HOME/snapshots"
 COMPOSE_FILE="$REPO_DIR/deploy/compose.yaml"
 
 log() { printf '[smash-hub] %s\n' "$*"; }
@@ -158,6 +160,22 @@ restore() {
 	start
 }
 
+# ログのスナップショットを書き出す（docs/operations/deployment.md の「9.4 ログのスナップショット」）。
+# 中身は連合で公開しているログとレートだけなので、バックアップと違って人に渡してよい
+snapshot() {
+	local file tmp
+	install -d -m 755 "$SNAPSHOT_DIR"
+	file="$SNAPSHOT_DIR/smashhub-snapshot-$(date +%Y%m%d-%H%M%S).json"
+	tmp="$file.partial"
+	if ! compose exec -T backend /server snapshot >"$tmp"; then
+		rm -f -- "$tmp"
+		die "スナップショットの書き出しに失敗しました（backend が起動しているか確認してください）"
+	fi
+	mv "$tmp" "$file"
+	chmod 644 "$file"
+	log "スナップショットを作成しました: $file"
+}
+
 update() {
 	local ref="${1:-}"
 	ref="${ref:-$(conf SMASH_HUB_REF)}"
@@ -209,9 +227,10 @@ main() {
 		update) update "$@" ;;
 		backup) backup ;;
 		restore) restore "$@" ;;
+		snapshot) snapshot ;;
 		check) check && log "設定に問題はありません" ;;
 		*)
-			sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
+			sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
 			[ -z "$cmd" ] || exit 1
 			;;
 	esac

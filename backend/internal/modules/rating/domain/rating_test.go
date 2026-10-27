@@ -1,34 +1,47 @@
 package domain
 
 import (
+	"encoding/csv"
+	"os"
+	"slices"
+	"strconv"
 	"testing"
 	"time"
 
 	shared "github.com/tacky0612/smash-hub/backend/internal/shared/domain"
 )
 
-// docs/domain/rating.md の「2.4 テストベクタ」。
+// testVectorsFile は docs/domain/rating.md の「2.4 テストベクタ」の CSV（他の言語の実装でも使えるよう docs/ に置く）。
+const testVectorsFile = "../../../../../docs/domain/rating-test-vectors.csv"
+
 func TestApply_TestVectors(t *testing.T) {
-	tests := []struct {
-		winner, loser, delta, newWinner, newLoser int
-	}{
-		{1500, 1500, 16, 1516, 1484},
-		{1600, 1500, 12, 1612, 1488},
-		{1500, 1600, 20, 1520, 1580},
-		{1500, 1800, 28, 1528, 1772},
-		{1884, 1500, 1, 1885, 1499},
-		{2389, 1500, 1, 2390, 1499},
-		{1200, 1700, 30, 1230, 1670},
-		{1500, 1005, 1, 1501, 1004},
-		{1100, 1010, 12, 1112, 1000},
+	f, err := os.Open(testVectorsFile)
+	if err != nil {
+		t.Fatal(err)
 	}
-	for _, tt := range tests {
-		if got := Delta(tt.winner, tt.loser); got != tt.delta {
-			t.Errorf("Delta(%d, %d) = %d, want %d", tt.winner, tt.loser, got, tt.delta)
+	defer f.Close()
+	rows, err := csv.NewReader(f).ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"winner_before", "loser_before", "delta", "winner_after", "loser_after", "note"}
+	if len(rows) < 2 || !slices.Equal(rows[0], want) {
+		t.Fatalf("CSV の見出し = %v, want %v", rows[0], want)
+	}
+	for i, row := range rows[1:] {
+		var v [5]int
+		for j := range v {
+			if v[j], err = strconv.Atoi(row[j]); err != nil {
+				t.Fatalf("%d 行目: %v", i+2, err)
+			}
 		}
-		w, l := Apply(tt.winner, tt.loser)
-		if w != tt.newWinner || l != tt.newLoser {
-			t.Errorf("Apply(%d, %d) = (%d, %d), want (%d, %d)", tt.winner, tt.loser, w, l, tt.newWinner, tt.newLoser)
+		winner, loser, delta, newWinner, newLoser := v[0], v[1], v[2], v[3], v[4]
+		if got := Delta(winner, loser); got != delta {
+			t.Errorf("%d 行目: Delta(%d, %d) = %d, want %d", i+2, winner, loser, got, delta)
+		}
+		w, l := Apply(winner, loser)
+		if w != newWinner || l != newLoser {
+			t.Errorf("%d 行目: Apply(%d, %d) = (%d, %d), want (%d, %d)", i+2, winner, loser, w, l, newWinner, newLoser)
 		}
 	}
 }

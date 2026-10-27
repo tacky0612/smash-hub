@@ -249,3 +249,20 @@ func (p Postgres) RemoteRequests(ctx context.Context, now time.Time) ([]applicat
 		return r, err
 	})
 }
+
+// ChainHeads は保存しているログ（自インスタンスのログと、取り込んだ連合先のログ）ごとの末尾を、オリジンの順に返す。
+// 連合先の公開鍵は取り込み時に固定したもの。自インスタンスのログの公開鍵は空で返す（呼び出し側が埋める）。
+func (p Postgres) ChainHeads(ctx context.Context) ([]application.ChainHead, error) {
+	rows, err := p.DB.Q(ctx).Query(ctx,
+		`SELECT DISTINCT ON (e.origin) e.origin, e.seq, e.hash, COALESCE(fp.public_key, '')
+		 FROM federation_events e LEFT JOIN federation_peers fp ON fp.url = e.origin
+		 ORDER BY e.origin, e.seq DESC`)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (application.ChainHead, error) {
+		var h application.ChainHead
+		err := row.Scan(&h.InstanceID, &h.Seq, &h.Hash, &h.PublicKey)
+		return h, err
+	})
+}
