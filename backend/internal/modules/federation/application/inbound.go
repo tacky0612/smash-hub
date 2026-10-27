@@ -35,6 +35,9 @@ type LiveMatch struct {
 	Winner      shared.AccountID `json:"winner"`
 	PlayedAt    time.Time        `json:"played_at"`
 	ExpiresAt   time.Time        `json:"expires_at"`
+	// 各プレイヤーが報告したゲームごとのファイター（報告していなければ省略）
+	Picks1 []shared.Pick `json:"picks1,omitempty"`
+	Picks2 []shared.Pick `json:"picks2,omitempty"`
 }
 
 // RemoteReport は参加者のホームインスタンスからホストへ中継される結果報告。
@@ -42,7 +45,10 @@ type RemoteReport struct {
 	MatchID   shared.MatchID   `json:"match_id"`
 	AccountID shared.AccountID `json:"account_id"`
 	Result    string           `json:"result"`
-	Sig       string           `json:"sig"` // 報告に対応する MatchStatement へのプレイヤーの署名（中止の場合は空）
+	Sig       string           `json:"sig"` // 報告が示す勝者の、1戦目だけの MatchStatement へのプレイヤーの署名（中止の場合は空）
+	// ゲームごとのファイター（任意）と、それを含めた MatchStatement へのプレイヤーの署名。入力しなければ省略する
+	Picks    []shared.Pick `json:"picks,omitempty"`
+	PicksSig string        `json:"picks_sig,omitempty"`
 }
 
 // InboundMatchmaking はホストとして対戦の申し込みを受け付ける。

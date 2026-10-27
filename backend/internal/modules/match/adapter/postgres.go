@@ -20,12 +20,14 @@ type Postgres struct {
 }
 
 const matchColumns = `id, player1_id, player2_id, fighter1, fighter2, room_id, status, report1, report2,
-	COALESCE(winner_id, ''), played_at, expires_at, COALESCE(resolved_at, 'epoch'::timestamptz), player2_home, sig1, sig2`
+	COALESCE(winner_id, ''), played_at, expires_at, COALESCE(resolved_at, 'epoch'::timestamptz), player2_home, sig1, sig2,
+	picks1, picks2, picks_sig1, picks_sig2`
 
 func (p Postgres) scanMatch(row pgx.Row) (domain.Match, error) {
 	m := domain.Match{Host: p.Self}
 	err := row.Scan(&m.ID, &m.Player1, &m.Player2, &m.Fighter1, &m.Fighter2, &m.RoomID, &m.Status,
-		&m.Report1, &m.Report2, &m.Winner, &m.PlayedAt, &m.ExpiresAt, &m.ResolvedAt, &m.Player2Home, &m.Sig1, &m.Sig2)
+		&m.Report1, &m.Report2, &m.Winner, &m.PlayedAt, &m.ExpiresAt, &m.ResolvedAt, &m.Player2Home, &m.Sig1, &m.Sig2,
+		&m.Picks1, &m.Picks2, &m.PicksSig1, &m.PicksSig2)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return m, shared.ErrNotFound
 	}
@@ -49,6 +51,14 @@ func nullTime(t time.Time) *time.Time {
 	return &t
 }
 
+// nullPicks は入力のないゲームごとのファイターを NULL にする（JSON の null ではなく）。
+func nullPicks(picks []shared.Pick) any {
+	if picks == nil {
+		return nil
+	}
+	return picks
+}
+
 func (p Postgres) Create(ctx context.Context, m domain.Match) error {
 	_, err := p.DB.Q(ctx).Exec(ctx,
 		`INSERT INTO matches (id, player1_id, player2_id, fighter1, fighter2, room_id, status, report1, report2, played_at, expires_at, player2_home)
@@ -68,8 +78,9 @@ func (p Postgres) GetForUpdate(ctx context.Context, id shared.MatchID) (domain.M
 func (p Postgres) Save(ctx context.Context, m domain.Match) error {
 	_, err := p.DB.Q(ctx).Exec(ctx,
 		`UPDATE matches SET room_id = $2, status = $3, report1 = $4, report2 = $5, winner_id = NULLIF($6, ''), resolved_at = $7,
-		 sig1 = $8, sig2 = $9 WHERE id = $1`,
-		m.ID, m.RoomID, m.Status, m.Report1, m.Report2, string(m.Winner), nullTime(m.ResolvedAt), m.Sig1, m.Sig2)
+		 sig1 = $8, sig2 = $9, picks1 = $10, picks2 = $11, picks_sig1 = $12, picks_sig2 = $13 WHERE id = $1`,
+		m.ID, m.RoomID, m.Status, m.Report1, m.Report2, string(m.Winner), nullTime(m.ResolvedAt), m.Sig1, m.Sig2,
+		nullPicks(m.Picks1), nullPicks(m.Picks2), m.PicksSig1, m.PicksSig2)
 	return err
 }
 

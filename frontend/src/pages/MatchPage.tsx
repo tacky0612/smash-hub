@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router";
-import { api, type Match, type MatchSide, type Report } from "../api";
+import { api, type Match, type MatchSide, type Pick, type Report } from "../api";
 import { useApp, usePolling } from "../context";
+import { GamePicksInput, initialPicks, RecordedPicks } from "./GamePicks";
 
 const REPORT_LABELS: Record<Report, string> = { win: "勝ち", lose: "負け", cancel: "対戦中止" };
 
@@ -11,6 +12,17 @@ export function MatchPage() {
   const [match, setMatch] = useState<Match | null>(null);
   const [roomId, setRoomId] = useState("");
   const [error, setError] = useState("");
+  // ゲームごとのファイター（任意）。null は入力しない
+  const [picks, setPicks] = useState<Pick[] | null>(null);
+  const picksRestored = useRef(false);
+
+  // 前に報告したゲームごとのファイターがあれば、入力欄に戻す（最初に読み込んだときだけ）
+  useEffect(() => {
+    if (!match || picksRestored.current) return;
+    picksRestored.current = true;
+    const mine = match.myRole === "player1" ? match.player1 : match.player2;
+    if (mine.picks?.length) setPicks(mine.picks);
+  }, [match]);
 
   // 相手の入室・報告を反映するため、対戦中は状態を確認し続ける
   usePolling(
@@ -28,6 +40,14 @@ export function MatchPage() {
   const mine = match.myRole === "player1" ? match.player1 : match.player2;
   const opponent = match.myRole === "player1" ? match.player2 : match.player1;
   const active = match.status === "in_progress";
+
+  const report = (r: Report) => {
+    if (r !== "cancel" && picks && picks.some((p) => p.characters.some((c) => !c))) {
+      setError("ゲームごとのファイターをすべて選んでください（記録しない場合はチェックを外してください）");
+      return;
+    }
+    void run(() => api.report(id, r, r === "cancel" ? undefined : (picks ?? undefined)));
+  };
 
   const run = async (fn: () => Promise<Match>) => {
     setError("");
@@ -99,12 +119,33 @@ export function MatchPage() {
             <p className="muted small">2本先取で決着したら報告してください。両者の報告が一致すると確定します。</p>
             {mine.report && <p>あなたの報告: <strong>{REPORT_LABELS[mine.report]}</strong>（報告し直せます）</p>}
             <p className="muted small">相手: {opponent.reported ? "報告済み" : "未報告"}</p>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={picks !== null}
+                onChange={(e) => setPicks(e.target.checked ? initialPicks(match, mine.picks) : null)}
+              />
+              ゲームごとのファイターも記録する（任意）
+            </label>
+            {picks && (
+              <GamePicksInput
+                match={match}
+                picks={picks}
+                onChange={(next) => {
+                  setPicks(next);
+                  setError("");
+                }}
+              />
+            )}
+            <p className="muted small">
+              勝ち負けが一致すれば確定します。ゲームごとのファイターは、両者の入力が一致したときだけ記録します（相手も同じ内容を入力してください）。
+            </p>
             <div className="report-buttons">
               {(["win", "lose", "cancel"] as Report[]).map((r) => (
                 <button
                   key={r}
                   className={`button ${r === "win" ? "primary" : ""} ${mine.report === r ? "selected" : ""}`}
-                  onClick={() => void run(() => api.report(id, r))}
+                  onClick={() => report(r)}
                 >
                   {REPORT_LABELS[r]}
                 </button>
@@ -113,6 +154,7 @@ export function MatchPage() {
           </section>
         </>
       )}
+      {match.status === "confirmed" && <RecordedPicks match={match} />}
       {error && <p className="error">{error}</p>}
       {!active && (
         <Link to="/" className="button primary block">

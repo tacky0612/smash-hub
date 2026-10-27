@@ -106,3 +106,39 @@ func TestAccountPublished_RequiresAccountSignature(t *testing.T) {
 		t.Error("他人の鍵で署名したアカウントを受け付けた")
 	}
 }
+
+func TestMatchRecorded_ValidatesPicks(t *testing.T) {
+	inst, alice, bob := newKey(), newKey(), newKey()
+	resign := func(r shared.MatchRecord) shared.MatchRecord {
+		r.Signatures = []shared.PlayerSignature{
+			{AccountID: r.Players[0].AccountID, Sig: alice.sign(r.MatchStatement.Bytes())},
+			{AccountID: r.Players[1].AccountID, Sig: bob.sign(r.MatchStatement.Bytes())},
+		}
+		return r
+	}
+	tests := []struct {
+		name  string
+		picks []shared.Pick
+		ok    bool
+	}{
+		{"3ゲーム", []shared.Pick{{Game: 1, Characters: []shared.FighterID{"mario", "fox"}}, {Game: 2, Characters: []shared.FighterID{"mario", "pikachu"}}, {Game: 3, Characters: []shared.FighterID{"link", "pikachu"}}}, true},
+		{"1戦目だけ（おまかせ）", []shared.Pick{{Game: 1, Characters: []shared.FighterID{shared.FighterRandom, "fox"}}}, true},
+		{"空", nil, false},
+		{"2戦目以降に random", []shared.Pick{{Game: 1, Characters: []shared.FighterID{"mario", "fox"}}, {Game: 2, Characters: []shared.FighterID{"mario", shared.FighterRandom}}}, false},
+		{"1人分しかない", []shared.Pick{{Game: 1, Characters: []shared.FighterID{"mario"}}}, false},
+		{"未知のファイター ID（新しいバージョンで追加された ID）は取り込む", []shared.Pick{{Game: 1, Characters: []shared.FighterID{"mario", "new_fighter"}}}, true},
+		{"ファイター ID の書式でない", []shared.Pick{{Game: 1, Characters: []shared.FighterID{"mario", "マリオ"}}}, false},
+		{"ゲーム番号が連番でない", []shared.Pick{{Game: 1, Characters: []shared.FighterID{"mario", "fox"}}, {Game: 3, Characters: []shared.FighterID{"mario", "fox"}}}, false},
+		{"4ゲーム", []shared.Pick{{Game: 1, Characters: []shared.FighterID{"mario", "fox"}}, {Game: 2, Characters: []shared.FighterID{"mario", "fox"}}, {Game: 3, Characters: []shared.FighterID{"mario", "fox"}}, {Game: 4, Characters: []shared.FighterID{"mario", "fox"}}}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := signedRecord(alice, bob)
+			rec.Picks = tt.picks
+			e, _ := NewEvent(TypeMatchRecorded, host, 1, "", "2026-11-01T20:10:00.000Z", resign(rec), inst.sign)
+			if _, err := DecodeMatchRecorded(e, crypto.VerifyDID); (err == nil) != tt.ok {
+				t.Errorf("DecodeMatchRecorded = %v, want ok=%v", err, tt.ok)
+			}
+		})
+	}
+}

@@ -3,6 +3,7 @@ package domain
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"regexp"
 	"time"
 )
 
@@ -21,6 +22,53 @@ type PlayerRef struct {
 type Pick struct {
 	Game       int         `json:"game"`
 	Characters []FighterID `json:"characters"`
+}
+
+// MaxGames は1回の対戦の最大ゲーム数（2本先取）。
+const MaxGames = 3
+
+// fighterIDPattern はファイター ID の書式（英小文字と _。docs/domain/fighters.md）。
+var fighterIDPattern = regexp.MustCompile(`^[a-z_]+$`)
+
+// ValidPicks は対戦記録の picks の形が正しいかを返す（連合から取り込む記録の検証に使う）。
+// 1〜MaxGames ゲームで、game は1からの連番、characters は2人分のファイター ID の書式の値。
+// random（おまかせ）は、ゲームごとのファイターがそろわなかった記録（1戦目だけの記録）にだけ認める
+// （docs/domain/fighters.md）。
+// ファイター ID が自インスタンスのファイター一覧にあるかは確かめない。新しいファイターの ID を追加した
+// バージョンのインスタンスの記録も取り込めるようにするため（未知の ID は表示できないだけ）。
+func ValidPicks(picks []Pick) bool {
+	if len(picks) < 1 || len(picks) > MaxGames {
+		return false
+	}
+	for i, p := range picks {
+		if p.Game != i+1 || len(p.Characters) != 2 {
+			return false
+		}
+		for _, c := range p.Characters {
+			if !fighterIDPattern.MatchString(string(c)) || (c == FighterRandom && len(picks) > 1) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// SamePicks は2つの picks が同じ内容かを返す。
+func SamePicks(a, b []Pick) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i].Game != b[i].Game || len(a[i].Characters) != len(b[i].Characters) {
+			return false
+		}
+		for j := range a[i].Characters {
+			if a[i].Characters[j] != b[i].Characters[j] {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // MatchStatement は両プレイヤーが署名する対戦結果の内容（MatchRecorded の payload から署名を除いたもの）。

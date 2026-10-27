@@ -108,3 +108,13 @@ th { color: var(--accent); font-weight: 700; font-size: 0.85rem; border-bottom: 
 .result { min-width: 3em; font-weight: 700; }
 .result.win { color: var(--success); }
 .result.lose { color: var(--danger); }
+
+/* 結果報告のゲームごとのファイター */
+.game-picks .inline { align-items: center; flex-wrap: wrap; gap: 16px; }
+label.radio { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-weight: 400; white-space: nowrap; }
+label.radio input { width: auto; margin: 0; }
+.game-picks { display: grid; gap: 8px; margin: 8px 0; }
+.game-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin: 0; }
+.game-row .fixed { display: block; padding: 6px 0; font-weight: 600; }
+.picks { width: 100%; border-collapse: collapse; }
+.picks th, .picks td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--border); }

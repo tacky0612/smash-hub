@@ -30,9 +30,10 @@ func TestCrossInstanceMatch(t *testing.T) {
 		t.Fatalf("Instance2 から見た対戦ルームが正しくない: %+v", m)
 	}
 
-	// 報告: bob の報告は Instance2 から Instance1（ホスト）へ中継される
-	alice.report(id, "win")
-	if m := bob.report(id, "lose"); m.Status != "confirmed" || m.Winner != alice.ID {
+	// 報告: bob の報告（ゲームごとのファイターと、その署名を含む）は Instance2 から Instance1（ホスト）へ中継される
+	g := games([2]string{"mario", "fox"}, [2]string{"mario", "pikachu"}, [2]string{"link", "pikachu"})
+	alice.reportPicks(id, "win", g)
+	if m := bob.reportPicks(id, "lose", g); m.Status != "confirmed" || m.Winner != alice.ID || len(m.RecordedPicks) != 3 {
 		t.Fatalf("報告が一致しても確定しない: %+v", m)
 	}
 
@@ -53,7 +54,8 @@ func TestCrossInstanceMatch(t *testing.T) {
 	eventually(t, "Instance2 の戦績", func() bool {
 		var history []match
 		bob.call("GET", "/api/accounts/"+bob.ID+"/matches", nil, http.StatusOK, &history)
-		return len(history) > 0 && history[0].ID == id && history[0].Status == "confirmed" && history[0].Winner == alice.ID
+		return len(history) > 0 && history[0].ID == id && history[0].Status == "confirmed" && history[0].Winner == alice.ID &&
+			len(history[0].RecordedPicks) == 3
 	})
 
 	// 確定後は2人とも待機中でも対戦中でもない
@@ -110,4 +112,31 @@ func TestFederationAPIRequiresInstanceSignature(t *testing.T) {
 	if info.InstanceID == "" || info.PublicKey == "" {
 		t.Errorf("インスタンス情報が空: %+v", info)
 	}
+}
+
+// インスタンスをまたぐ対戦で、ゲームごとのファイターが標準ルールに沿わない報告は中継の前に拒否し、
+// 両者の入力がそろわなければ1戦目だけを記録する。その記録が連合先にも同じ内容で複製される。
+func TestCrossInstancePicksAreValidatedAndFallBack(t *testing.T) {
+	gina := newPlayer(t, instance1, "gina")
+	hank := newPlayer(t, instance2, "hank")
+	id := matchUntilBoth(t, gina, hank) // gina（mario）がプレイヤー1、hank（fox）がプレイヤー2
+
+	// gina の 2-0 なのに、gina（1戦目の勝者）が2戦目にファイターを変えた内容は受け付けない
+	bad := games([2]string{"mario", "fox"}, [2]string{"link", "fox"})
+	hank.call("POST", "/api/matches/"+id+"/report", map[string]any{"result": "lose", "picks": bad}, http.StatusBadRequest, nil)
+	if m := gina.match(id); m.Player2.Reported {
+		t.Fatal("拒否した報告がホストに中継された")
+	}
+
+	// gina だけがファイターを入力し、hank は入力しない → 勝敗が一致すれば確定し、1戦目だけを記録する
+	gina.reportPicks(id, "win", games([2]string{"mario", "fox"}, [2]string{"mario", "pikachu"}))
+	if m := hank.report(id, "lose"); m.Status != "confirmed" || len(m.RecordedPicks) != 1 {
+		t.Fatalf("1戦目だけの記録で確定する: %+v", m)
+	}
+	eventually(t, "Instance2 の戦績", func() bool {
+		var history []match
+		hank.call("GET", "/api/accounts/"+hank.ID+"/matches", nil, http.StatusOK, &history)
+		return len(history) > 0 && history[0].ID == id && history[0].Status == "confirmed" &&
+			len(history[0].RecordedPicks) == 1 && history[0].RecordedPicks[0].Characters[1] == "fox"
+	})
 }

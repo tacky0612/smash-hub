@@ -24,11 +24,16 @@ export type MatchmakingStatus = {
 
 export type Report = "win" | "lose" | "cancel";
 
+/** 1ゲームで使ったファイター。characters はプレイヤー1、プレイヤー2 の順。 */
+export type Pick = { game: number; characters: [string, string] };
+
 export type MatchSide = {
   player: { id: string; displayName: string; rating: number };
   fighter: string;
   reported: boolean;
   report?: Report;
+  /** 自分が報告したゲームごとのファイター（本人にだけ返る） */
+  picks?: Pick[];
 };
 
 export type Match = {
@@ -40,6 +45,8 @@ export type Match = {
   winner?: string;
   player1: MatchSide;
   player2: MatchSide;
+  /** 確定した対戦で記録したゲームごとのファイター（両者の入力が一致しなければ1戦目だけ） */
+  recordedPicks?: Pick[];
   myRole?: "player1" | "player2";
   roomId?: string;
   roomPassword?: string;
@@ -100,8 +107,8 @@ export const api = {
   match: (id: string) => request<Match>("GET", `/api/matches/${encodeURIComponent(id)}`),
   setRoom: (id: string, roomId: string) =>
     request<Match>("PUT", `/api/matches/${encodeURIComponent(id)}/room`, { roomId }),
-  report: (id: string, result: Report) =>
-    request<Match>("POST", `/api/matches/${encodeURIComponent(id)}/report`, { result }),
+  report: (id: string, result: Report, picks?: Pick[]) =>
+    request<Match>("POST", `/api/matches/${encodeURIComponent(id)}/report`, { result, picks }),
   history: (accountId: string) => request<Match[]>("GET", `/api/accounts/${encodeURIComponent(accountId)}/matches`),
   standing: (accountId: string) => request<Standing>("GET", `/api/accounts/${encodeURIComponent(accountId)}/rating`),
   ranking: () => request<Ranking>("GET", "/api/ranking"),

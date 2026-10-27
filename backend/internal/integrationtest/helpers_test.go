@@ -100,21 +100,45 @@ type side struct {
 }
 
 type matchRes struct {
-	ID           string `json:"id"`
-	Status       string `json:"status"`
-	Mismatched   bool   `json:"mismatched"`
-	Winner       string `json:"winner"`
-	MyRole       string `json:"myRole"`
-	RoomID       string `json:"roomId"`
-	RoomPassword string `json:"roomPassword"`
-	Player1      side   `json:"player1"`
-	Player2      side   `json:"player2"`
+	ID            string `json:"id"`
+	Status        string `json:"status"`
+	Mismatched    bool   `json:"mismatched"`
+	Winner        string `json:"winner"`
+	MyRole        string `json:"myRole"`
+	RoomID        string `json:"roomId"`
+	RoomPassword  string `json:"roomPassword"`
+	Player1       side   `json:"player1"`
+	Player2       side   `json:"player2"`
+	RecordedPicks []pick `json:"recordedPicks"`
 }
 
 func (p *player) match(id string) matchRes {
 	p.t.Helper()
 	var m matchRes
 	p.call("GET", "/api/matches/"+id, nil, http.StatusOK, &m)
+	return m
+}
+
+// pick は1ゲームのファイター（プレイヤー1、プレイヤー2 の順）。
+type pick struct {
+	Game       int      `json:"game"`
+	Characters []string `json:"characters"`
+}
+
+// games はゲームごとのファイターの組（プレイヤー1、プレイヤー2 の順）から picks を作る。
+func games(gs ...[2]string) []pick {
+	out := make([]pick, len(gs))
+	for i, g := range gs {
+		out[i] = pick{Game: i + 1, Characters: []string{g[0], g[1]}}
+	}
+	return out
+}
+
+// reportPicks はゲームごとのファイターを付けて結果を報告する。
+func (p *player) reportPicks(id, result string, picks []pick) matchRes {
+	p.t.Helper()
+	var m matchRes
+	p.call("POST", "/api/matches/"+id+"/report", map[string]any{"result": result, "picks": picks}, http.StatusOK, &m)
 	return m
 }
 

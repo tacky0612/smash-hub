@@ -46,6 +46,8 @@ type sideView struct {
 	Fighter  shared.FighterID `json:"fighter"`
 	Reported bool             `json:"reported"`
 	Report   domain.Report    `json:"report,omitempty"` // 両者の報告がそろうまでは相手の報告内容を見せない
+	// 自分が報告したゲームごとのファイター（本人にだけ返す）
+	Picks []shared.Pick `json:"picks,omitempty"`
 }
 
 type matchView struct {
@@ -57,6 +59,8 @@ type matchView struct {
 	Winner     shared.AccountID `json:"winner,omitempty"`
 	Player1    sideView         `json:"player1"`
 	Player2    sideView         `json:"player2"`
+	// 確定した対戦で記録したゲームごとのファイター（両者の入力が一致しなければ1戦目だけ）
+	RecordedPicks []shared.Pick `json:"recordedPicks,omitempty"`
 	// 当事者にだけ返す
 	MyRole       string `json:"myRole,omitempty"` // "player1" / "player2"
 	RoomID       string `json:"roomId,omitempty"`
@@ -77,6 +81,9 @@ func (h *HTTP) view(ctx context.Context, m domain.Match, viewer shared.AccountID
 		Player1: sideView{Player: p1, Fighter: m.Fighter1, Reported: m.Report1 != domain.ReportNone},
 		Player2: sideView{Player: p2, Fighter: m.Fighter2, Reported: m.Report2 != domain.ReportNone},
 	}
+	if m.Status == domain.StatusConfirmed {
+		v.RecordedPicks = m.RecordedPicks()
+	}
 	if !m.IsParticipant(viewer) {
 		return v, nil
 	}
@@ -84,13 +91,13 @@ func (h *HTTP) view(ctx context.Context, m domain.Match, viewer shared.AccountID
 	bothReported := v.Player1.Reported && v.Player2.Reported
 	if viewer == m.Player1 {
 		v.MyRole = "player1"
-		v.Player1.Report = m.Report1
+		v.Player1.Report, v.Player1.Picks = m.Report1, m.Picks1
 		if bothReported {
 			v.Player2.Report = m.Report2
 		}
 	} else {
 		v.MyRole = "player2"
-		v.Player2.Report = m.Report2
+		v.Player2.Report, v.Player2.Picks = m.Report2, m.Picks2
 		if bothReported {
 			v.Player1.Report = m.Report1
 		}
@@ -164,12 +171,17 @@ func (h *HTTP) report(w http.ResponseWriter, r *http.Request) {
 	}
 	var req struct {
 		Result domain.Report `json:"result"`
+		// ゲームごとのファイター（任意）。プレイヤー1・プレイヤー2の順の2人分を、1戦目から順に
+		Picks []shared.Pick `json:"picks"`
 	}
 	if err := httpx.ReadJSON(r, &req); err != nil {
 		httpx.WriteError(w, err)
 		return
 	}
-	m, err := h.Service.Report(r.Context(), me, shared.MatchID(r.PathValue("id")), req.Result)
+	if len(req.Picks) == 0 {
+		req.Picks = nil
+	}
+	m, err := h.Service.Report(r.Context(), me, shared.MatchID(r.PathValue("id")), req.Result, req.Picks)
 	if err != nil {
 		httpx.WriteError(w, err)
 		return
