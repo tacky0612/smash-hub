@@ -106,6 +106,7 @@ smash-hub/
 ├── .claude/skills/    Claude Code のスキル（docs-check: ドキュメントの整合性・リンク切れチェック）
 ├── docs/              設計・ポリシー・ロードマップなどのドキュメント
 ├── compose.yaml       ローカル環境（Docker Compose）
+├── deploy/            本番インスタンスの構成（Docker Compose・Caddy・セットアップスクリプト）
 ├── Makefile           起動・テストのコマンド
 ├── frontend/          Web UI（React SPA）
 ├── site/              SmashHubプロトコルの紹介サイト（GitHub Pages。main への push で自動デプロイ）

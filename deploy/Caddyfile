@@ -1,0 +1,53 @@
+# 本番インスタンスのリバースプロキシ（Caddy）。deploy/compose.yaml から使う。
+# ドメインは環境変数 DOMAIN（/opt/smash-hub/smash-hub.env）。HTTPS の証明書は Caddy が自動で取得・更新する。
+{
+	# Caddy 自身の動作ログ（エラー等）から接続元の IP アドレスを消す。
+	# IP アドレスを含むログはバックエンドが DB に記録し、保持期間を過ぎたら削除する（docs/security/data-protection.md）。
+	# Caddy のログは期限を管理できないため、IP アドレスを残さない
+	log {
+		format filter {
+			wrap console
+			request>remote_ip delete
+			request>remote_port delete
+			request>client_ip delete
+			request>headers delete
+			remote_ip delete
+			remote_addr delete
+		}
+		level WARN
+	}
+}
+
+{$DOMAIN} {
+	# アクセスログは出さない（log ディレクティブを書かない）
+
+	encode zstd gzip
+
+	# すべての応答に付けるセキュリティヘッダー。
+	# frontend の nginx（frontend/security-headers.conf）と同じ値にそろえ、backend に直接流す /api/・/federation/ の応答にも付ける。
+	# defer: 上流（web / backend）が付けた同名のヘッダーを、応答を返す直前に上書きして重複させない
+	header {
+		defer
+		Strict-Transport-Security "max-age=31536000"
+		Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+		-Server
+	}
+
+	# API とインスタンス間の API（連合）は backend に直接流す。
+	# backend は X-Real-IP を接続元の IP アドレスとして使う（CLIENT_IP_HEADER）。
+	# 利用者が送ってきた X-Real-IP・X-Forwarded-For は信用せず、Caddy が見た接続元のアドレスで上書きする
+	# （trusted_proxies を設定していないため、X-Forwarded-For も Caddy が接続元のアドレスで作り直す）。
+	@backend path /api/* /federation/*
+	handle @backend {
+		reverse_proxy backend:8081 {
+			header_up X-Real-IP {remote_host}
+		}
+	}
+
+	# それ以外（SPA の画面・静的ファイル）は web（nginx）へ
+	handle {
+		reverse_proxy web:80
+	}
+}

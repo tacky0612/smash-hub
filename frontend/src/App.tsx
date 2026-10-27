@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link, Navigate, NavLink, Route, Routes } from "react-router";
 import { useApp } from "./context";
+import { AdminPage } from "./pages/AdminPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { MatchPage } from "./pages/MatchPage";
@@ -8,6 +9,7 @@ import { PlayerPage } from "./pages/PlayerPage";
 import { RankingPage } from "./pages/RankingPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { TermsConsentPage, TermsPage } from "./pages/TermsPage";
 
 export function App() {
   const { me } = useApp();
@@ -24,6 +26,8 @@ export function App() {
           <Route path="/players/:id" element={<RequireLogin><PlayerPage /></RequireLogin>} />
           <Route path="/settings" element={<RequireLogin><SettingsPage /></RequireLogin>} />
           <Route path="/ranking" element={<RankingPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/admin" element={<RequireLogin><AdminPage /></RequireLogin>} />
           <Route path="*" element={<p>ページが見つかりません。</p>} />
         </Routes>
       </main>
@@ -37,12 +41,14 @@ function RequireLogin({ children, registered = true }: { children: ReactNode; re
   const { me } = useApp();
   if (!me?.loggedIn) return <Navigate to="/login" replace />;
   if (registered && !me.registered) return <Navigate to="/register" replace />;
+  // 利用規約が更新されていたら、同意してもらうまで他の画面を出さない
+  if (registered && me.registered && !me.termsAccepted) return <TermsConsentPage />;
   if (!registered && me.registered) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
 function Header() {
-  const { me, instance } = useApp();
+  const { me, instance, moderation } = useApp();
   const registered = me?.loggedIn && me.registered;
   return (
     <header className="header">
@@ -55,6 +61,7 @@ function Header() {
         <NavLink to="/ranking">ランキング</NavLink>
         {registered && <NavLink to={`/players/${me.account.id}`}>戦績</NavLink>}
         {registered && <NavLink to="/settings">設定</NavLink>}
+        {registered && moderation?.admin && <NavLink to="/admin">管理</NavLink>}
       </nav>
     </header>
   );
@@ -67,6 +74,10 @@ function Footer() {
       <p>
         本サービスは有志による非公式のファンサイトであり、任天堂株式会社とは一切関係ありません。
         「大乱闘スマッシュブラザーズ」は任天堂株式会社の登録商標です。
+      </p>
+      <p>
+        <Link to="/terms">利用規約</Link>
+        {instance?.contact && <> ／ 問い合わせ: {instance.contact}</>}
       </p>
       <p>
         {/* AGPL-3.0 第13条: 利用者にソースコードを提示する */}

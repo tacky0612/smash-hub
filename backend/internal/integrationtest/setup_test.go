@@ -51,7 +51,7 @@ func resetDB(t *testing.T, db *database.DB) {
 	_, err := db.Pool.Exec(context.Background(),
 		`TRUNCATE ratings, match_requests, matches, oauth_states, sessions, external_identities, accounts,
 		 federation_events, federation_peers, match_records, remote_accounts, remote_match_requests, remote_matches,
-		 access_logs`)
+		 access_logs, match_voids, reports, sanctions`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,6 +100,8 @@ func testConfig() config.Config {
 		// テスト専用の固定値（32バイトのシードを base64 にしたもの）
 		InstancePrivateKey: "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
 		AccountKeySecret:   []byte("integration-test-account-key-secret-0123456789"),
+		// 開発用ログインの名前 "admin" で登録したアカウントを管理者にする
+		DevAdminNames: []string{"admin"},
 	}
 }
 

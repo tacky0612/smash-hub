@@ -103,18 +103,33 @@ func (p Postgres) InsertRecord(ctx context.Context, r shared.MatchRecord, logged
 	return err
 }
 
+// recordColumns は collectRecords が読む列。match_records r と match_voids v（LEFT JOIN）から選ぶ。
+const recordColumns = `r.body, r.logged_at, v.reason, v.voided_at`
+
+const recordsFrom = `match_records r LEFT JOIN match_voids v ON v.record_id = r.record_id`
+
+func scanRecord(row pgx.Row) (application.StoredRecord, error) {
+	var body string
+	var reason *string
+	var voidedAt *time.Time
+	var r application.StoredRecord
+	if err := row.Scan(&body, &r.LoggedAt, &reason, &voidedAt); err != nil {
+		return r, err
+	}
+	if err := json.Unmarshal([]byte(body), &r.MatchRecord); err != nil {
+		return r, err
+	}
+	if reason != nil && voidedAt != nil {
+		r.Void = &application.Void{RecordID: r.RecordID(), Host: string(r.HostInstance), Reason: *reason, VoidedAt: *voidedAt}
+	}
+	return r, nil
+}
+
 func collectRecords(rows pgx.Rows, err error) ([]application.StoredRecord, error) {
 	if err != nil {
 		return nil, err
 	}
-	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (application.StoredRecord, error) {
-		var body string
-		var r application.StoredRecord
-		if err := row.Scan(&body, &r.LoggedAt); err != nil {
-			return r, err
-		}
-		return r, json.Unmarshal([]byte(body), &r.MatchRecord)
-	})
+	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (application.StoredRecord, error) { return scanRecord(row) })
 }
 
 func (p Postgres) Records(ctx context.Context, from, to time.Time) ([]application.StoredRecord, error) {
@@ -123,14 +138,66 @@ func (p Postgres) Records(ctx context.Context, from, to time.Time) ([]applicatio
 		toPtr = &to
 	}
 	return collectRecords(p.DB.Q(ctx).Query(ctx,
-		`SELECT body, logged_at FROM match_records
-		 WHERE played_at >= $1 AND ($2::timestamptz IS NULL OR played_at < $2) ORDER BY played_at, record_id`, from, toPtr))
+		`SELECT `+recordColumns+` FROM `+recordsFrom+`
+		 WHERE r.played_at >= $1 AND ($2::timestamptz IS NULL OR r.played_at < $2) ORDER BY r.played_at, r.record_id`, from, toPtr))
 }
 
 func (p Postgres) RecordsFor(ctx context.Context, account shared.AccountID, limit int) ([]application.StoredRecord, error) {
 	return collectRecords(p.DB.Q(ctx).Query(ctx,
-		`SELECT body, logged_at FROM match_records WHERE player1_id = $1 OR player2_id = $1
-		 ORDER BY played_at DESC LIMIT $2`, account, limit))
+		`SELECT `+recordColumns+` FROM `+recordsFrom+` WHERE r.player1_id = $1 OR r.player2_id = $1
+		 ORDER BY r.played_at DESC LIMIT $2`, account, limit))
+}
+
+func (p Postgres) RecordByID(ctx context.Context, recordID string) (application.StoredRecord, error) {
+	r, err := scanRecord(p.DB.Q(ctx).QueryRow(ctx,
+		`SELECT `+recordColumns+` FROM `+recordsFrom+` WHERE r.record_id = $1`, recordID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return r, shared.ErrNotFound
+	}
+	return r, err
+}
+
+func (p Postgres) RecordByMatch(ctx context.Context, key application.MatchKey) (application.StoredRecord, error) {
+	r, err := scanRecord(p.DB.Q(ctx).QueryRow(ctx,
+		`SELECT `+recordColumns+` FROM `+recordsFrom+` WHERE r.host = $1 AND r.match_id = $2
+		 ORDER BY r.record_id LIMIT 1`, key.Host, key.MatchID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return r, shared.ErrNotFound
+	}
+	return r, err
+}
+
+func (p Postgres) InsertVoid(ctx context.Context, v application.Void) error {
+	_, err := p.DB.Q(ctx).Exec(ctx,
+		`INSERT INTO match_voids (record_id, host, reason, voided_at) VALUES ($1, $2, $3, $4) ON CONFLICT (record_id) DO NOTHING`,
+		v.RecordID, v.Host, v.Reason, v.VoidedAt)
+	return err
+}
+
+// VoidedMatches は keys のうち、有効な無効化がある対戦を返す（表示用）。
+func (p Postgres) VoidedMatches(ctx context.Context, keys []application.MatchKey) (map[application.MatchKey]bool, error) {
+	out := map[application.MatchKey]bool{}
+	if len(keys) == 0 {
+		return out, nil
+	}
+	hosts, ids := make([]string, len(keys)), make([]string, len(keys))
+	for i, k := range keys {
+		hosts[i], ids[i] = string(k.Host), string(k.MatchID)
+	}
+	rows, err := p.DB.Q(ctx).Query(ctx,
+		`SELECT `+recordColumns+` FROM `+recordsFrom+`
+		 JOIN unnest($1::text[], $2::text[]) AS k(host, match_id) ON k.host = r.host AND k.match_id = r.match_id
+		 WHERE v.record_id IS NOT NULL`, hosts, ids)
+	recs, err := collectRecords(rows, err)
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range recs {
+		if r.Voided() {
+			out[application.MatchKey{Host: r.HostInstance, MatchID: r.MatchID}] = true
+		}
+	}
+	return out, nil
 }
 
 func (p Postgres) UpsertRemoteAccount(ctx context.Context, a application.RemoteAccount, now time.Time) error {

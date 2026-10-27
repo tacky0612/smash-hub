@@ -38,6 +38,31 @@ type RemoteAccount struct {
 type StoredRecord struct {
 	shared.MatchRecord
 	LoggedAt time.Time
+	// Void は記録の無効化（なければ nil）。期限を過ぎた無効化も保存するため、有効かは Voided で判定する
+	Void *Void
+}
+
+// Voided はレート計算で除外する（有効な無効化がある）記録かを返す。
+func (r StoredRecord) Voided() bool {
+	if r.Void == nil {
+		return false
+	}
+	played, err := time.Parse(time.RFC3339, r.PlayedAt)
+	return err == nil && domain.VoidEffective(played, r.Void.VoidedAt)
+}
+
+// Void は保存済みの無効化。
+type Void struct {
+	RecordID string
+	Host     string
+	Reason   string
+	VoidedAt time.Time // ホストがログに追記した日時（イベントヘッダの created_at）
+}
+
+// MatchKey は対戦をホストと対戦 ID で指す（対戦 ID はホストごとに一意）。
+type MatchKey struct {
+	Host    shared.InstanceID
+	MatchID shared.MatchID
 }
 
 // RemoteRequest は他インスタンスから配信された対戦募集。
@@ -63,6 +88,12 @@ type Store interface {
 	InsertRecord(ctx context.Context, r shared.MatchRecord, loggedAt time.Time) error
 	Records(ctx context.Context, from, to time.Time) ([]StoredRecord, error)
 	RecordsFor(ctx context.Context, account shared.AccountID, limit int) ([]StoredRecord, error)
+	// RecordByID は記録 ID の記録を返す。なければ ErrNotFound
+	RecordByID(ctx context.Context, recordID string) (StoredRecord, error)
+	// RecordByMatch はホストと対戦 ID の記録を返す。なければ ErrNotFound
+	RecordByMatch(ctx context.Context, key MatchKey) (StoredRecord, error)
+	// InsertVoid は無効化を保存する。同じ記録の無効化が既にあれば何もしない（先に追記されたものを残す）
+	InsertVoid(ctx context.Context, v Void) error
 	UpsertRemoteAccount(ctx context.Context, a RemoteAccount, now time.Time) error
 	RemoteAccount(ctx context.Context, id shared.AccountID) (RemoteAccount, error)
 	UpsertRemoteRequest(ctx context.Context, r RemoteRequest) error
@@ -134,6 +165,52 @@ func (s *Service) PublishMatch(ctx context.Context, r shared.MatchRecord) error 
 	return s.Store.InsertRecord(ctx, r, loggedAt)
 }
 
+// VoidMatch は自インスタンスがホストした対戦の記録を無効化し、ログに追記する（モデレーション）。
+// 無効化できるのは played_at から VoidDeadline 以内で、記録自体は消さない。
+func (s *Service) VoidMatch(ctx context.Context, matchID shared.MatchID, reason string) error {
+	if !slices.Contains(domain.VoidReasons, reason) {
+		return shared.Invalid("無効化の事由を選んでください")
+	}
+	return s.Tx.InTx(ctx, func(ctx context.Context) error {
+		rec, err := s.Store.RecordByMatch(ctx, MatchKey{Host: s.Self, MatchID: matchID})
+		if err != nil {
+			return err
+		}
+		if rec.Void != nil {
+			return &conflictError{"この対戦は既に無効化されています"}
+		}
+		played, err := time.Parse(time.RFC3339, rec.PlayedAt)
+		if err != nil {
+			return err
+		}
+		if !domain.VoidEffective(played, s.Clock.Now()) {
+			return shared.Invalid("無効化できるのは対戦から7日以内です")
+		}
+		e, err := s.append(ctx, domain.TypeMatchVoided, domain.MatchVoided{RecordID: rec.RecordID(), Reason: reason})
+		if err != nil {
+			return err
+		}
+		voidedAt, _ := time.Parse(time.RFC3339, e.CreatedAt)
+		if err := s.Store.InsertVoid(ctx, Void{RecordID: rec.RecordID(), Host: string(s.Self), Reason: reason, VoidedAt: voidedAt}); err != nil {
+			return err
+		}
+		return s.recordsChanged(ctx)
+	})
+}
+
+func (s *Service) recordsChanged(ctx context.Context) error {
+	if s.RecordsChanged == nil {
+		return nil
+	}
+	return s.RecordsChanged(ctx)
+}
+
+// conflictError は shared.ErrConflict として扱われるエラー（メッセージ付き）。
+type conflictError struct{ msg string }
+
+func (c *conflictError) Error() string        { return c.msg }
+func (c *conflictError) Is(target error) bool { return target == shared.ErrConflict }
+
 // OwnLog は自インスタンスのログを since の次から返す。
 func (s *Service) OwnLog(ctx context.Context, since int64, limit int) ([]json.RawMessage, error) {
 	if limit <= 0 {
@@ -204,7 +281,7 @@ func (s *Service) SyncPeer(ctx context.Context, peer string) (int, error) {
 				break
 			}
 			imported++
-			records = records || e.Type == domain.TypeMatchRecorded
+			records = records || e.Type == domain.TypeMatchRecorded || e.Type == domain.TypeMatchVoided
 		}
 		msg := ""
 		if syncErr != nil {
@@ -213,8 +290,8 @@ func (s *Service) SyncPeer(ctx context.Context, peer string) (int, error) {
 		if err := s.Store.SavePeer(ctx, st, msg, s.Clock.Now()); err != nil {
 			return err
 		}
-		if records && s.RecordsChanged != nil {
-			return s.RecordsChanged(ctx)
+		if records {
+			return s.recordsChanged(ctx)
 		}
 		return nil
 	})
@@ -250,6 +327,10 @@ func (s *Service) importEvent(ctx context.Context, peer, pub string, st *PeerSta
 		if err := s.Store.InsertRecord(ctx, r, loggedAt); err != nil {
 			return err
 		}
+	case domain.TypeMatchVoided:
+		if err := s.importVoid(ctx, e); err != nil {
+			return err
+		}
 	default:
 		// 未対応の種別は、ログとしては保存して先へ進む（将来のバージョンとの互換のため）
 	}
@@ -260,7 +341,32 @@ func (s *Service) importEvent(ctx context.Context, peer, pub string, st *PeerSta
 	return nil
 }
 
-// ConfirmedResults はレート計算の入力となる記録を返す。取り込みの締め切りを過ぎた記録は除く。
+// importVoid は連合先の無効化を検証して保存する。無効化できるのは記録のホストだけで、
+// 記録は同じログの前の位置にあるため、先に取り込まれている（federation.md 5.2）。
+// 期限を過ぎた無効化も保存はする（レート計算で有効にするかは VoidEffective で判定する）。
+func (s *Service) importVoid(ctx context.Context, e domain.Event) error {
+	v, err := domain.DecodeMatchVoided(e)
+	if err != nil {
+		return err
+	}
+	rec, err := s.Store.RecordByID(ctx, v.RecordID)
+	if errors.Is(err, shared.ErrNotFound) {
+		return errors.New("MatchVoided: unknown record")
+	}
+	if err != nil {
+		return err
+	}
+	if string(rec.HostInstance) != e.InstanceID {
+		return errors.New("MatchVoided: only the host instance can void its record")
+	}
+	voidedAt, err := time.Parse(time.RFC3339, e.CreatedAt)
+	if err != nil {
+		return err
+	}
+	return s.Store.InsertVoid(ctx, Void{RecordID: v.RecordID, Host: e.InstanceID, Reason: v.Reason, VoidedAt: voidedAt})
+}
+
+// ConfirmedResults はレート計算の入力となる記録を返す。取り込みの締め切りを過ぎた記録と、無効化された記録は除く。
 func (s *Service) ConfirmedResults(ctx context.Context, from, to time.Time) ([]StoredRecord, error) {
 	all, err := s.Store.Records(ctx, from, to)
 	if err != nil {
@@ -272,7 +378,7 @@ func (s *Service) ConfirmedResults(ctx context.Context, from, to time.Time) ([]S
 		if err != nil {
 			continue
 		}
-		if r.LoggedAt.Sub(played) <= IngestCutoff {
+		if r.LoggedAt.Sub(played) <= IngestCutoff && !r.Voided() {
 			out = append(out, r)
 		}
 	}

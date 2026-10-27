@@ -60,6 +60,8 @@ type Service struct {
 	Keys       KeyManager
 	Events     AccountEvents // 未設定なら連合に伝えない
 	Discord    OAuthProvider // 未設定なら nil
+	// TermsVersion は現在の利用規約の版。登録時に、利用者が読んだ版と一致することを確かめる
+	TermsVersion string
 }
 
 // Me はログイン中の利用者の状態。
@@ -154,9 +156,16 @@ func (s *Service) GetMe(ctx context.Context, sess domain.Session) (Me, error) {
 }
 
 // Register はログイン済み・未登録の利用者のアカウントを作る。
-func (s *Service) Register(ctx context.Context, sess domain.Session, displayName string, mainFighter shared.FighterID) (domain.Account, error) {
+// termsVersion は利用者が読んで同意した利用規約の版で、現在の版と一致しなければ登録しない。
+func (s *Service) Register(ctx context.Context, sess domain.Session, displayName string, mainFighter shared.FighterID, termsVersion string) (domain.Account, error) {
 	if sess.Registered() {
 		return domain.Account{}, shared.ErrConflict
+	}
+	if termsVersion == "" {
+		return domain.Account{}, shared.Invalid("利用規約と運営ポリシーへの同意が必要です")
+	}
+	if termsVersion != s.TermsVersion {
+		return domain.Account{}, shared.Invalid("利用規約が更新されました。読み直してから同意してください")
 	}
 	now := s.Clock.Now()
 	id, pub, sealed := s.Keys.Generate()
@@ -164,6 +173,7 @@ func (s *Service) Register(ctx context.Context, sess domain.Session, displayName
 	if err != nil {
 		return domain.Account{}, err
 	}
+	a.AgreeTerms(termsVersion, now)
 	err = s.Tx.InTx(ctx, func(ctx context.Context) error {
 		// 同じ外部アカウントで別のセッションから既に登録されていないか確認する
 		if _, err := s.Identities.FindAccountID(ctx, sess.IdentifierHash); err == nil {
@@ -183,6 +193,45 @@ func (s *Service) Register(ctx context.Context, sess domain.Session, displayName
 		return s.publish(ctx, a)
 	})
 	return a, err
+}
+
+// TermsAccepted は a が現在の版の利用規約に同意しているかを返す。
+func (s *Service) TermsAccepted(a domain.Account) bool {
+	return a.TermsVersion == s.TermsVersion
+}
+
+// AgreeTerms は登録済みの利用者が、更新された利用規約に同意したことを記録する。
+// version は利用者が読んだ版で、現在の版と一致しなければ記録しない。
+func (s *Service) AgreeTerms(ctx context.Context, id shared.AccountID, version string) (domain.Account, error) {
+	if version != s.TermsVersion {
+		return domain.Account{}, shared.Invalid("利用規約が更新されました。読み直してから同意してください")
+	}
+	var a domain.Account
+	err := s.Tx.InTx(ctx, func(ctx context.Context) error {
+		var err error
+		if a, err = s.Accounts.Get(ctx, id); err != nil {
+			return err
+		}
+		a.AgreeTerms(version, s.Clock.Now())
+		return s.Accounts.Update(ctx, a)
+	})
+	return a, err
+}
+
+// CanPlay は、現在の版の利用規約に同意していなければ理由付きの ErrForbidden を返す（matchmaking から使う）。
+// 他インスタンスの利用者は、そのホームインスタンスの利用規約に従うため確かめない。
+func (s *Service) CanPlay(ctx context.Context, id shared.AccountID) error {
+	a, err := s.Accounts.Get(ctx, id)
+	if errors.Is(err, shared.ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if !s.TermsAccepted(a) {
+		return shared.Forbidden("利用規約が更新されました。新しい利用規約に同意してから対戦してください")
+	}
+	return nil
 }
 
 // UpdateProfile はプロフィールを変更する。
@@ -218,6 +267,11 @@ func (s *Service) publish(ctx context.Context, a domain.Account) error {
 		return nil
 	}
 	return s.Events.AccountChanged(ctx, a, func(msg []byte) (string, error) { return s.SignAs(ctx, a.ID, msg) })
+}
+
+// DevAccountID は開発用ログインの名前に紐づくアカウント ID を返す（開発環境で管理者を指定するために使う）。
+func (s *Service) DevAccountID(ctx context.Context, name string) (shared.AccountID, error) {
+	return s.Identities.FindAccountID(ctx, s.Hasher.Hash(ProviderDev, name))
 }
 
 // GetAccount はアカウントを取得する。

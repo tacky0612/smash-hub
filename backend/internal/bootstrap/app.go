@@ -17,6 +17,8 @@ import (
 	matchapp "github.com/tacky0612/smash-hub/backend/internal/modules/match/application"
 	mmadapter "github.com/tacky0612/smash-hub/backend/internal/modules/matchmaking/adapter"
 	mmapp "github.com/tacky0612/smash-hub/backend/internal/modules/matchmaking/application"
+	modadapter "github.com/tacky0612/smash-hub/backend/internal/modules/moderation/adapter"
+	modapp "github.com/tacky0612/smash-hub/backend/internal/modules/moderation/application"
 	ratingadapter "github.com/tacky0612/smash-hub/backend/internal/modules/rating/adapter"
 	ratingapp "github.com/tacky0612/smash-hub/backend/internal/modules/rating/application"
 	ratingdomain "github.com/tacky0612/smash-hub/backend/internal/modules/rating/domain"
@@ -27,6 +29,7 @@ import (
 	"github.com/tacky0612/smash-hub/backend/internal/platform/database"
 	"github.com/tacky0612/smash-hub/backend/internal/platform/httpx"
 	"github.com/tacky0612/smash-hub/backend/internal/platform/ratelimit"
+	"github.com/tacky0612/smash-hub/backend/internal/platform/terms"
 	shared "github.com/tacky0612/smash-hub/backend/internal/shared/domain"
 )
 
@@ -38,6 +41,7 @@ type App struct {
 	Matches     *matchapp.Service
 	Ratings     *ratingapp.Service
 	Federation  *fedapp.Service
+	Moderation  *modapp.Service
 	AccessLog   *accesslog.Recorder
 
 	clock              shared.Clock
@@ -55,6 +59,13 @@ func New(cfg config.Config, db *database.DB, clock shared.Clock) (*App, error) {
 		return nil, err
 	}
 	sealer, err := crypto.NewSealer(cfg.AccountKeySecret)
+	if err != nil {
+		return nil, err
+	}
+	docs := cfg.SourceCodeURL + "/blob/main/docs/"
+	tos, err := terms.Load(cfg.TermsFile, terms.Vars{
+		InstanceName: cfg.InstanceName, PolicyURL: docs + "policy.md", RulesURL: docs + "domain/match-rules.md", Contact: cfg.OperatorContact,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +88,7 @@ func New(cfg config.Config, db *database.DB, clock shared.Clock) (*App, error) {
 	accounts := &accountapp.Service{
 		Tx: db, Accounts: ap.Accounts(), Identities: ap.Identities(), Sessions: ap.Sessions(), States: ap.States(),
 		Hasher: crypto.IdentifierHasher{Pepper: cfg.IdentifierPepper}, Tokens: tokens{}, Clock: clock,
-		Keys: accountadapter.Keys{Sealer: sealer}, Events: accountEvents{federation},
+		Keys: accountadapter.Keys{Sealer: sealer}, Events: accountEvents{federation}, TermsVersion: tos.Version,
 	}
 	if cfg.DiscordEnabled() {
 		accounts.Discord = auth.NewDiscord(cfg.DiscordClientID, cfg.DiscordClientSecret, cfg.DiscordRedirectURL)
@@ -95,16 +106,27 @@ func New(cfg config.Config, db *database.DB, clock shared.Clock) (*App, error) {
 		Tx: db, Matches: matchadapter.Postgres{DB: db, Self: self}, Remote: matchadapter.RemoteRefs{DB: db},
 		Clock: clock, Self: self, Changed: recompute{ratings},
 		Signer: accounts, Publisher: federation, Records: recordReader{fedStore},
-		Hosts: remoteHosts{client}, VerifyDID: crypto.VerifyDID,
+		Hosts: remoteHosts{client}, Voids: voidReader{fedStore}, VerifyDID: crypto.VerifyDID,
 	}
 	matchmaking := &mmapp.Service{
 		Tx: db, Requests: mmadapter.Postgres{DB: db}, Matches: matches, Ratings: ratings, Clock: clock,
 		Remote: &remoteRequests{federation: federation, client: client},
 	}
 
+	// モデレーション
+	mp := modadapter.Postgres{DB: db}
+	moderation := &modapp.Service{
+		Tx: db, Reports: mp.Reports(), Sanctions: mp.Sanctions(), Clock: clock,
+		Admins:   newAdmins(cfg.AdminAccountIDs, cfg.DevAdminNames, accounts),
+		Accounts: knownAccounts{accounts: accounts, federation: fedStore},
+		Voider:   federation, Matchmaking: matchmaking,
+	}
+	matchmaking.Eligible = eligibility{accounts, moderation}
+
 	accountHTTP := &accountadapter.HTTP{
 		Service: accounts, CookieSecure: cfg.CookieSecure, DevLoginEnabled: cfg.DevLoginEnabled,
 		PublicBaseURL: cfg.PublicBaseURL, SourceCodeURL: cfg.SourceCodeURL, InstanceName: cfg.InstanceName,
+		Terms: tos, OperatorContact: cfg.OperatorContact,
 	}
 	dir := directory{accounts: accounts, ratings: ratings, federation: fedStore}
 
@@ -120,6 +142,7 @@ func New(cfg config.Config, db *database.DB, clock shared.Clock) (*App, error) {
 	(&mmadapter.HTTP{Service: matchmaking}).Register(mux)
 	(&matchadapter.HTTP{Service: matches, Players: dir}).Register(mux)
 	(&ratingadapter.HTTP{Service: ratings, Names: dir}).Register(mux)
+	(&modadapter.HTTP{Service: moderation, Names: dir, Self: self, Clock: clock}).Register(mux)
 	(&fedadapter.HTTP{Service: federation, Matchmaking: inboundMatchmaking{matchmaking}, Matches: inboundMatches{matches}}).Register(mux)
 
 	// 外側から: 接続元の IP → アクセスログ → CSRF → セッション → レート制限（IP とアカウントで数える）
@@ -138,6 +161,7 @@ func New(cfg config.Config, db *database.DB, clock shared.Clock) (*App, error) {
 		Matches:     matches,
 		Ratings:     ratings,
 		Federation:  federation,
+		Moderation:  moderation,
 		AccessLog:   accessLog,
 
 		clock:              clock,
@@ -145,7 +169,7 @@ func New(cfg config.Config, db *database.DB, clock shared.Clock) (*App, error) {
 	}, nil
 }
 
-// RunSweeper は期限切れの対戦・離脱した募集・保持期間を過ぎたアクセスログを定期的に片付ける。ctx が終わるまで戻らない。
+// RunSweeper は期限切れの対戦・離脱した募集・保持期間を過ぎたアクセスログと通報を定期的に片付ける。ctx が終わるまで戻らない。
 func (a *App) RunSweeper(ctx context.Context, interval time.Duration) {
 	t := time.NewTicker(interval)
 	defer t.Stop()
@@ -164,6 +188,9 @@ func (a *App) RunSweeper(ctx context.Context, interval time.Duration) {
 			}
 			if _, err := a.PurgeAccessLogs(ctx); err != nil {
 				slog.Error("purge access logs", "err", err)
+			}
+			if _, err := a.Moderation.PurgeReports(ctx); err != nil {
+				slog.Error("purge reports", "err", err)
 			}
 		}
 	}

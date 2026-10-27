@@ -31,8 +31,9 @@ type accountRepo Postgres
 
 func (r accountRepo) Create(ctx context.Context, a domain.Account, publicKey, sealedPrivateKey []byte) error {
 	_, err := r.DB.Q(ctx).Exec(ctx,
-		`INSERT INTO accounts (id, display_name, main_fighter, created_at, public_key, sealed_private_key) VALUES ($1, $2, $3, $4, $5, $6)`,
-		a.ID, a.DisplayName, a.MainFighter, a.CreatedAt, publicKey, sealedPrivateKey)
+		`INSERT INTO accounts (id, display_name, main_fighter, created_at, public_key, sealed_private_key, terms_version, terms_agreed_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		a.ID, a.DisplayName, a.MainFighter, a.CreatedAt, publicKey, sealedPrivateKey, a.TermsVersion, a.TermsAgreedAt)
 	return err
 }
 
@@ -47,9 +48,13 @@ func (r accountRepo) SealedPrivateKey(ctx context.Context, id shared.AccountID) 
 
 func (r accountRepo) Get(ctx context.Context, id shared.AccountID) (domain.Account, error) {
 	var a domain.Account
+	var agreedAt *time.Time
 	err := r.DB.Q(ctx).QueryRow(ctx,
-		`SELECT id, display_name, main_fighter, created_at FROM accounts WHERE id = $1`, id).
-		Scan(&a.ID, &a.DisplayName, &a.MainFighter, &a.CreatedAt)
+		`SELECT id, display_name, main_fighter, created_at, terms_version, terms_agreed_at FROM accounts WHERE id = $1`, id).
+		Scan(&a.ID, &a.DisplayName, &a.MainFighter, &a.CreatedAt, &a.TermsVersion, &agreedAt)
+	if agreedAt != nil {
+		a.TermsAgreedAt = *agreedAt
+	}
 	if errors.Is(err, pgx.ErrNoRows) {
 		return a, shared.ErrNotFound
 	}
@@ -58,7 +63,8 @@ func (r accountRepo) Get(ctx context.Context, id shared.AccountID) (domain.Accou
 
 func (r accountRepo) Update(ctx context.Context, a domain.Account) error {
 	_, err := r.DB.Q(ctx).Exec(ctx,
-		`UPDATE accounts SET display_name = $2, main_fighter = $3 WHERE id = $1`, a.ID, a.DisplayName, a.MainFighter)
+		`UPDATE accounts SET display_name = $2, main_fighter = $3, terms_version = $4, terms_agreed_at = $5 WHERE id = $1`,
+		a.ID, a.DisplayName, a.MainFighter, a.TermsVersion, nullTime(a.TermsAgreedAt))
 	return err
 }
 
@@ -136,4 +142,12 @@ func (r stateRepo) Take(ctx context.Context, state string, now time.Time) (strin
 		return "", shared.ErrNotFound
 	}
 	return verifier, err
+}
+
+// nullTime はゼロ値の時刻を NULL として書き込む。
+func nullTime(t time.Time) *time.Time {
+	if t.IsZero() {
+		return nil
+	}
+	return &t
 }

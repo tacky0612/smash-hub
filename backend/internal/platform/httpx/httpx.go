@@ -38,9 +38,12 @@ func ReadJSON(r *http.Request, v any) error {
 // WriteError はエラーを HTTP ステータスと JSON に変換して書き出す。
 func WriteError(w http.ResponseWriter, err error) {
 	var ve *domain.ValidationError
+	var fe *domain.ForbiddenError
 	switch {
 	case errors.As(err, &ve):
 		WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid", "message": ve.Message})
+	case errors.As(err, &fe):
+		WriteJSON(w, http.StatusForbidden, map[string]string{"error": "forbidden", "message": fe.Message})
 	case errors.Is(err, domain.ErrUnauthorized):
 		WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized", "message": "ログインが必要です"})
 	case errors.Is(err, domain.ErrForbidden):

@@ -51,8 +51,11 @@ type sideView struct {
 }
 
 type matchView struct {
-	ID         shared.MatchID   `json:"id"`
-	Status     domain.Status    `json:"status"`
+	ID     shared.MatchID    `json:"id"`
+	Host   shared.InstanceID `json:"host"`
+	Status domain.Status     `json:"status"`
+	// Voided はモデレーションで無効化された（レート計算から除外された）確定済みの対戦
+	Voided     bool             `json:"voided,omitempty"`
 	Mismatched bool             `json:"mismatched"`
 	PlayedAt   time.Time        `json:"playedAt"`
 	ExpiresAt  time.Time        `json:"expiresAt"`
@@ -77,7 +80,7 @@ func (h *HTTP) view(ctx context.Context, m domain.Match, viewer shared.AccountID
 		return matchView{}, err
 	}
 	v := matchView{
-		ID: m.ID, Status: m.Status, Mismatched: m.Mismatched(), PlayedAt: m.PlayedAt, ExpiresAt: m.ExpiresAt, Winner: m.Winner,
+		ID: m.ID, Host: m.Host, Status: m.Status, Mismatched: m.Mismatched(), PlayedAt: m.PlayedAt, ExpiresAt: m.ExpiresAt, Winner: m.Winner,
 		Player1: sideView{Player: p1, Fighter: m.Fighter1, Reported: m.Report1 != domain.ReportNone},
 		Player2: sideView{Player: p2, Fighter: m.Fighter2, Reported: m.Report2 != domain.ReportNone},
 	}
@@ -111,6 +114,12 @@ func (h *HTTP) write(w http.ResponseWriter, r *http.Request, m domain.Match, vie
 		httpx.WriteError(w, err)
 		return
 	}
+	voided, err := h.Service.Voided(r.Context(), m)
+	if err != nil {
+		httpx.WriteError(w, err)
+		return
+	}
+	v.Voided = voided[application.MatchRef{Host: m.Host, ID: m.ID}]
 	httpx.WriteJSON(w, http.StatusOK, v)
 }
 
@@ -200,6 +209,11 @@ func (h *HTTP) history(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, err)
 		return
 	}
+	voided, err := h.Service.Voided(r.Context(), ms...)
+	if err != nil {
+		httpx.WriteError(w, err)
+		return
+	}
 	views := make([]matchView, 0, len(ms))
 	for _, m := range ms {
 		v, err := h.view(r.Context(), m, me)
@@ -207,6 +221,7 @@ func (h *HTTP) history(w http.ResponseWriter, r *http.Request) {
 			httpx.WriteError(w, err)
 			return
 		}
+		v.Voided = voided[application.MatchRef{Host: m.Host, ID: m.ID}]
 		v.RoomID, v.RoomPassword = "", "" // 一覧には部屋情報を含めない
 		views = append(views, v)
 	}

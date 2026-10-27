@@ -21,7 +21,8 @@ backend/
     │   ├── matchmaking/            # 対戦相手を探す（対戦募集・自動マッチング）
     │   ├── match/                  # 対戦・結果報告・中止・期限切れ
     │   ├── rating/                 # レーティング算出（スマメイト式）・ランキング
-    │   └── federation/             # 連合: 署名付き追記専用ログ・pull 同期・検証・インスタンス間の対戦の受け口
+    │   ├── federation/             # 連合: 署名付き追記専用ログ・pull 同期・検証・インスタンス間の対戦の受け口
+    │   └── moderation/             # 通報・処分（注意・イエローカード・レッドカード）・対戦記録の無効化の指示
     │
     │   # 各モジュールの内部構成（全モジュール共通）
     │   └── <module>/
@@ -39,7 +40,8 @@ backend/
     │   ├── ratelimit/              #    レート制限（アカウント / IP アドレスごとのトークンバケット）
     │   ├── accesslog/              #    アクセスログの記録（DB）と保持期間を過ぎたものの削除
     │   ├── auth/                   #    外部認証プロバイダー（Discord）の OAuth 2.0 クライアント
-    │   └── crypto/                 #    識別子ハッシュ（HMAC）・トークン・PKCE
+    │   ├── crypto/                 #    識別子ハッシュ（HMAC）・トークン・PKCE
+    │   └── terms/                  #    利用規約の読み込み（プロジェクト共通のひな形を埋め込み、ファイルで差し替え）
     ├── bootstrap/                  # コンポジションルート（各モジュールの組み立て、port の接続）
     └── integrationtest/            # PostgreSQL と結合したテスト（build tag: integration）
 e2e/                                # 2つのインスタンスを Docker で立てた E2E テスト（build tag: e2e）
@@ -84,9 +86,10 @@ flowchart LR
 |---|---|---|---|
 | `account` | `Account`, `ExternalIdentity`（識別子ハッシュ）, `Session` | 外部プロバイダーでのログイン、登録、プロバイダーの紐づけ、プロフィール編集、鍵管理、エクスポート、移行、削除 | `AccountRegistered`, `AccountMoved`, `AccountPseudonymized` |
 | `matchmaking` | `MatchRequest`（対戦募集）, `MatchingQueue`, `MatchmakingPreference`, `StageBanList`, `BlockList` | 対戦相手を探す（募集作成・自動マッチング）、キャンセル、マッチング条件・拒否ステージ・スイッチ・ブロックの設定 | `MatchMade` |
-| `match` | `Match`（対戦） | 対戦開始、ゲームの記録（ステージ・ファイター）、結果報告（両者）、期限切れ処理、無効化 | `MatchConfirmed`, `MatchCancelled`, `MatchExpired`, `MatchVoided` |
+| `match` | `Match`（対戦） | 対戦開始、ゲームの記録（ステージ・ファイター）、結果報告（両者）、期限切れ処理、無効化された対戦の表示 | `MatchConfirmed`, `MatchCancelled`, `MatchExpired` |
 | `rating` | `RatingLedger`, `Season` | レート再計算、ランキング取得、レート履歴取得 | `RatingUpdated` |
-| `federation` | `Event`（ログのイベント）, `AccountPublished`, `PeerState`（連合先と取り込み位置） | ログ追記（AccountPublished・MatchRecorded）、ログ提供、pull 同期と検証、募集の配信の受け付け、インスタンス間の対戦の受け口（申し込み・状態・報告の中継を matchmaking / match へ渡す） | `RecordsChanged`（rating の再計算） |
+| `federation` | `Event`（ログのイベント）, `AccountPublished`, `MatchVoided`, `PeerState`（連合先と取り込み位置） | ログ追記（AccountPublished・MatchRecorded・MatchVoided）、ログ提供、pull 同期と検証（無効化は記録のホストが発行したものだけ受理）、募集の配信の受け付け、インスタンス間の対戦の受け口（申し込み・状態・報告の中継を matchmaking / match へ渡す） | `RecordsChanged`（rating の再計算） |
+| `moderation` | `Report`（通報）, `Sanction`（処分） | 通報の受け付け、管理者による通報の確認・対応、処分（注意・イエローカード・レッドカード）と解除、利用停止の判定（matchmaking が参照）、対戦記録の無効化の指示（federation へ）、対応済みの通報の削除 | — |
 
 ## 5. 設計上の約束
 
