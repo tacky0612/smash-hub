@@ -56,9 +56,25 @@ type Match struct {
 	Host shared.InstanceID
 	// Player2Home はプレイヤー2が他インスタンスの利用者の場合のホームインスタンス（自インスタンスの利用者なら空）
 	Player2Home shared.InstanceID
-	// Sig1・Sig2 は各プレイヤーの結果報告の署名（報告内容に対応する MatchStatement への署名）
+	// Sig1・Sig2 は各プレイヤーの結果報告の署名（報告が示す勝者の、1戦目だけの MatchStatement への署名）
 	Sig1 string
 	Sig2 string
+	// Picks1・Picks2 は各プレイヤーが報告したゲームごとのファイター（任意。入力しなければ nil）。
+	// PicksSig1・PicksSig2 は、そのファイターを含めた MatchStatement への署名。
+	// 両者の入力が一致したときだけ、ゲームごとのファイターを記録に含める（docs/adr/0010-game-picks-in-report.md）
+	Picks1    []shared.Pick
+	Picks2    []shared.Pick
+	PicksSig1 string
+	PicksSig2 string
+}
+
+// Submission は1人のプレイヤーの結果報告。
+type Submission struct {
+	Report Report
+	Sig    string        // 1戦目だけの対戦結果の内容への署名（勝敗の報告のとき）
+	Picks  []shared.Pick // ゲームごとのファイター（任意）
+	// PicksSig は Picks を含めた対戦結果の内容への署名（Picks を入力したとき）
+	PicksSig string
 }
 
 // New は成立した対戦を作る。p2Home はプレイヤー2が他インスタンスの利用者ならそのインスタンス。
@@ -87,15 +103,24 @@ func (m Match) WinnerIndex(by shared.AccountID, r Report) int {
 	return -1
 }
 
-// Statement は勝者を winner とした対戦結果の内容（両プレイヤーが署名する対象）を返す。
+// Statement は勝者を winner とした、1戦目のファイターだけの対戦結果の内容（両プレイヤーが署名する対象）を返す。
+// 1戦目のファイターはマッチングで登録したもの（おまかせなら random）。
 func (m Match) Statement(winner int) shared.MatchStatement {
+	return m.StatementWithPicks(winner, nil)
+}
+
+// StatementWithPicks は、ゲームごとのファイター picks を含めた対戦結果の内容を返す。picks が nil なら Statement と同じ。
+func (m Match) StatementWithPicks(winner int, picks []shared.Pick) shared.MatchStatement {
+	if picks == nil {
+		picks = []shared.Pick{{Game: 1, Characters: []shared.FighterID{m.Fighter1, m.Fighter2}}}
+	}
 	return shared.MatchStatement{
 		MatchID:      m.ID,
 		HostInstance: m.Host,
 		PlayedAt:     shared.FormatTime(m.PlayedAt),
 		Ruleset:      shared.RulesetStandard,
 		Players:      []shared.PlayerRef{{AccountID: m.Player1}, {AccountID: m.Player2}},
-		Picks:        []shared.Pick{{Game: 1, Characters: []shared.FighterID{m.Fighter1, m.Fighter2}}},
+		Picks:        picks,
 		Winner:       winner,
 	}
 }
@@ -109,6 +134,15 @@ func (m Match) Record() (shared.MatchRecord, error) {
 	if m.Winner == m.Player2 {
 		winner = 1
 	}
+	if m.PicksAgreed() {
+		return shared.MatchRecord{
+			MatchStatement: m.StatementWithPicks(winner, m.Picks1),
+			Signatures: []shared.PlayerSignature{
+				{AccountID: m.Player1, Sig: m.PicksSig1},
+				{AccountID: m.Player2, Sig: m.PicksSig2},
+			},
+		}, nil
+	}
 	return shared.MatchRecord{
 		MatchStatement: m.Statement(winner),
 		Signatures: []shared.PlayerSignature{
@@ -116,6 +150,72 @@ func (m Match) Record() (shared.MatchRecord, error) {
 			{AccountID: m.Player2, Sig: m.Sig2},
 		},
 	}, nil
+}
+
+// PicksAgreed は、両者がゲームごとのファイターを報告し、その内容が一致しているかを返す。
+func (m Match) PicksAgreed() bool {
+	return m.Picks1 != nil && m.Picks2 != nil && shared.SamePicks(m.Picks1, m.Picks2)
+}
+
+// RecordedPicks は確定した対戦の記録に含めるゲームごとのファイターを返す。
+func (m Match) RecordedPicks() []shared.Pick {
+	if m.PicksAgreed() {
+		return m.Picks1
+	}
+	return m.Statement(0).Picks
+}
+
+// ValidatePicks は、勝者を winner（Players の添字）とした報告のゲームごとのファイター picks が標準ルールに沿っているかを確認する。
+//   - 2〜3ゲーム（2本先取）で、game は1からの連番、characters はプレイヤー1・プレイヤー2の順の2人分
+//   - 実際に使ったファイターを入れる（random は不可）
+//   - 1戦目はマッチングで登録したファイター（おまかせで登録した側は、実際に使ったファイター）
+//   - 2・3戦目にファイターを変えられるのは直前のゲームの敗者だけ。ゲームごとの勝敗は報告しないが、
+//     対戦の勝者から各ゲームの勝敗の並びは限られるため、それと矛盾しないことを確かめる
+//     （2ゲームなら勝者の2連勝、3ゲームなら勝者が1戦目か2戦目のどちらかで負けている）
+func (m Match) ValidatePicks(winner int, picks []shared.Pick) error {
+	if len(picks) < 2 || len(picks) > shared.MaxGames {
+		return shared.Invalid("ゲームごとのファイターは2〜3ゲーム分を入力してください")
+	}
+	if winner != 0 && winner != 1 {
+		return shared.Invalid("ゲームごとのファイターは勝敗の報告と一緒に入力してください")
+	}
+	registered := []shared.FighterID{m.Fighter1, m.Fighter2}
+	for i, p := range picks {
+		if p.Game != i+1 || len(p.Characters) != 2 {
+			return shared.Invalid("ゲームごとのファイターの形式が正しくありません")
+		}
+		for j, c := range p.Characters {
+			if !shared.IsValidFighter(c, false) {
+				return shared.Invalid("ゲームごとのファイターには実際に使ったファイターを選んでください")
+			}
+			if i == 0 && registered[j] != shared.FighterRandom && c != registered[j] {
+				return shared.Invalid("1戦目のファイターはマッチングで選んだファイターです")
+			}
+		}
+	}
+	// candidates は各ゲームの勝者の並びの候補（最後のゲームは対戦の勝者が勝つ）
+	loser := 1 - winner
+	candidates := [][]int{{winner, winner}}
+	if len(picks) == 3 {
+		candidates = [][]int{{loser, winner, winner}, {winner, loser, winner}}
+	}
+	for _, gameWinners := range candidates {
+		if onlyLosersChanged(picks, gameWinners) {
+			return nil
+		}
+	}
+	return shared.Invalid("ファイターを変えられるのは直前のゲームの敗者だけです")
+}
+
+// onlyLosersChanged は、各ゲームの勝者が gameWinners のとき、続くゲームでファイターを変えたのが直前の敗者だけかを返す。
+func onlyLosersChanged(picks []shared.Pick, gameWinners []int) bool {
+	for i := 1; i < len(picks); i++ {
+		prevWinner := gameWinners[i-1]
+		if picks[i].Characters[prevWinner] != picks[i-1].Characters[prevWinner] {
+			return false
+		}
+	}
+	return true
 }
 
 // IsParticipant は id が対戦の当事者かを返す。
@@ -149,20 +249,29 @@ func (m *Match) SetRoomID(by shared.AccountID, roomID string, now time.Time) err
 	return nil
 }
 
-// SubmitReport は by の結果報告（と、勝敗の報告なら対戦結果の内容への署名 sig）を記録し、
+// SubmitReport は by の結果報告（勝敗・署名・任意でゲームごとのファイター）を記録し、
 // 両者の報告が一致すれば確定・中止にする。確定した場合は confirmed に true を返す。
-func (m *Match) SubmitReport(by shared.AccountID, r Report, sig string, now time.Time) (confirmed bool, err error) {
+// 確定の条件は勝敗の一致だけで、ゲームごとのファイターが食い違っても確定する（その場合は1戦目だけを記録する）。
+func (m *Match) SubmitReport(by shared.AccountID, s Submission, now time.Time) (confirmed bool, err error) {
 	if err := m.ensureActive(now); err != nil {
 		return false, err
 	}
-	if r != ReportWin && r != ReportLose && r != ReportCancel {
+	if s.Report != ReportWin && s.Report != ReportLose && s.Report != ReportCancel {
 		return false, shared.Invalid("報告は「勝ち」「負け」「中止」のいずれかです")
+	}
+	if s.Report == ReportCancel {
+		s.Picks, s.PicksSig = nil, "" // 中止した対戦のファイターは記録しない
+	}
+	if s.Picks != nil {
+		if err := m.ValidatePicks(m.WinnerIndex(by, s.Report), s.Picks); err != nil {
+			return false, err
+		}
 	}
 	switch by {
 	case m.Player1:
-		m.Report1, m.Sig1 = r, sig
+		m.Report1, m.Sig1, m.Picks1, m.PicksSig1 = s.Report, s.Sig, s.Picks, s.PicksSig
 	case m.Player2:
-		m.Report2, m.Sig2 = r, sig
+		m.Report2, m.Sig2, m.Picks2, m.PicksSig2 = s.Report, s.Sig, s.Picks, s.PicksSig
 	default:
 		return false, shared.ErrForbidden
 	}

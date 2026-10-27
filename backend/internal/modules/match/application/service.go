@@ -35,7 +35,7 @@ type RecordReader interface {
 // RemoteHosts は他インスタンスがホストする対戦の状態の取得と、結果報告の中継を行う（federation が実装する）。
 type RemoteHosts interface {
 	Live(ctx context.Context, host shared.InstanceID, id shared.MatchID) (domain.Match, error)
-	Report(ctx context.Context, host shared.InstanceID, id shared.MatchID, by shared.AccountID, r domain.Report, sig string) (domain.Match, error)
+	Report(ctx context.Context, host shared.InstanceID, id shared.MatchID, by shared.AccountID, sub domain.Submission) (domain.Match, error)
 }
 
 // Service は対戦のユースケース。
@@ -157,24 +157,25 @@ func (s *Service) SetRoomID(ctx context.Context, by shared.AccountID, id shared.
 }
 
 // Report は自インスタンスの利用者の結果報告。勝敗の報告には、対戦結果の内容へのその利用者の署名を付ける。
+// ゲームごとのファイター picks（任意。nil なら入力なし）を報告した場合は、それを含めた内容にも署名する。
 // 他インスタンスがホストする対戦なら、ホストへ中継する。
-func (s *Service) Report(ctx context.Context, by shared.AccountID, id shared.MatchID, r domain.Report) (domain.Match, error) {
+func (s *Service) Report(ctx context.Context, by shared.AccountID, id shared.MatchID, r domain.Report, picks []shared.Pick) (domain.Match, error) {
 	if _, err := s.Matches.Get(ctx, id); errors.Is(err, shared.ErrNotFound) {
-		return s.reportRemote(ctx, by, id, r)
+		return s.reportRemote(ctx, by, id, r, picks)
 	}
 	return s.update(ctx, id, func(m *domain.Match) (bool, error) {
 		if by == m.Player2 && m.Player2Home != "" {
 			return false, shared.ErrForbidden // 他インスタンスの利用者は、ホームインスタンス経由で報告する
 		}
-		sig, err := s.sign(ctx, *m, by, r)
+		sub, err := s.sign(ctx, *m, by, r, picks)
 		if err != nil {
 			return false, err
 		}
-		return m.SubmitReport(by, r, sig, s.Clock.Now())
+		return m.SubmitReport(by, sub, s.Clock.Now())
 	})
 }
 
-func (s *Service) reportRemote(ctx context.Context, by shared.AccountID, id shared.MatchID, r domain.Report) (domain.Match, error) {
+func (s *Service) reportRemote(ctx context.Context, by shared.AccountID, id shared.MatchID, r domain.Report, picks []shared.Pick) (domain.Match, error) {
 	m, err := s.getRemote(ctx, id)
 	if err != nil {
 		return m, err
@@ -182,7 +183,7 @@ func (s *Service) reportRemote(ctx context.Context, by shared.AccountID, id shar
 	if !m.IsParticipant(by) {
 		return m, shared.ErrForbidden
 	}
-	sig, err := s.sign(ctx, m, by, r)
+	sub, err := s.sign(ctx, m, by, r, picks)
 	if err != nil {
 		return m, err
 	}
@@ -190,34 +191,63 @@ func (s *Service) reportRemote(ctx context.Context, by shared.AccountID, id shar
 	if err != nil {
 		return m, err
 	}
-	m, err = s.Hosts.Report(ctx, ref.Host, id, by, r, sig)
+	m, err = s.Hosts.Report(ctx, ref.Host, id, by, sub)
 	if err != nil {
 		return m, err
 	}
 	return m, s.Remote.SetStatus(ctx, id, m.Status)
 }
 
-func (s *Service) sign(ctx context.Context, m domain.Match, by shared.AccountID, r domain.Report) (string, error) {
+// sign は報告に署名する。勝敗の報告なら1戦目だけの内容に、picks があればそれを含めた内容にも署名する。
+// 署名する前に picks を検証する（不正な内容に署名しない）。中止の報告には署名しない。
+func (s *Service) sign(ctx context.Context, m domain.Match, by shared.AccountID, r domain.Report, picks []shared.Pick) (domain.Submission, error) {
+	sub := domain.Submission{Report: r}
 	winner := m.WinnerIndex(by, r)
-	if winner < 0 || s.Signer == nil {
-		return "", nil // 中止の報告には署名しない
+	if winner < 0 {
+		return sub, nil
 	}
-	return s.Signer.SignAs(ctx, by, m.Statement(winner).Bytes())
+	sub.Picks = picks
+	if picks != nil {
+		if err := m.ValidatePicks(winner, picks); err != nil {
+			return sub, err
+		}
+	}
+	if s.Signer == nil {
+		return sub, nil
+	}
+	var err error
+	if sub.Sig, err = s.Signer.SignAs(ctx, by, m.Statement(winner).Bytes()); err != nil {
+		return sub, err
+	}
+	if picks != nil {
+		if sub.PicksSig, err = s.Signer.SignAs(ctx, by, m.StatementWithPicks(winner, picks).Bytes()); err != nil {
+			return sub, err
+		}
+	}
+	return sub, nil
 }
 
 // RemoteReport はホストとして、他インスタンスから中継されたプレイヤー2の結果報告を受け付ける。
-// 中継元がプレイヤー2のホームインスタンスであることと、プレイヤー2の署名を検証する。
-func (s *Service) RemoteReport(ctx context.Context, from shared.InstanceID, id shared.MatchID, by shared.AccountID, r domain.Report, sig string) (domain.Match, error) {
+// 中継元がプレイヤー2のホームインスタンスであることと、プレイヤー2の署名（picks があればそれを含めた内容への署名も）を検証する。
+func (s *Service) RemoteReport(ctx context.Context, from shared.InstanceID, id shared.MatchID, by shared.AccountID, sub domain.Submission) (domain.Match, error) {
 	return s.update(ctx, id, func(m *domain.Match) (bool, error) {
 		if by != m.Player2 || m.Player2Home == "" || m.Player2Home != from {
 			return false, shared.ErrForbidden
 		}
-		if winner := m.WinnerIndex(by, r); winner >= 0 {
-			if s.VerifyDID == nil || !s.VerifyDID(string(by), m.Statement(winner).Bytes(), sig) {
+		if winner := m.WinnerIndex(by, sub.Report); winner >= 0 {
+			if s.VerifyDID == nil || !s.VerifyDID(string(by), m.Statement(winner).Bytes(), sub.Sig) {
 				return false, shared.Invalid("報告の署名が正しくありません")
 			}
+			if sub.Picks != nil {
+				if err := m.ValidatePicks(winner, sub.Picks); err != nil {
+					return false, err
+				}
+				if !s.VerifyDID(string(by), m.StatementWithPicks(winner, sub.Picks).Bytes(), sub.PicksSig) {
+					return false, shared.Invalid("報告の署名が正しくありません")
+				}
+			}
 		}
-		return m.SubmitReport(by, r, sig, s.Clock.Now())
+		return m.SubmitReport(by, sub, s.Clock.Now())
 	})
 }
 
@@ -270,6 +300,10 @@ func fromRecord(r shared.MatchRecord) domain.Match {
 	}
 	if len(r.Picks) > 0 && len(r.Picks[0].Characters) == 2 {
 		m.Fighter1, m.Fighter2 = r.Picks[0].Characters[0], r.Picks[0].Characters[1]
+	}
+	if len(r.Picks) > 1 {
+		// 記録にゲームごとのファイターがあるのは両者の入力が一致したときなので、両者の報告として復元する
+		m.Picks1, m.Picks2 = r.Picks, r.Picks
 	}
 	m.PlayedAt, _ = parseTime(r.PlayedAt)
 	return m

@@ -22,3 +22,4 @@ Smash-hub の重要な設計判断を記録します。運営者や開発者が�
 | [0007](0007-federation-open-to-commercial-sites.md) | 連合への参加に非営利を求めない | Accepted |
 | [0008](0008-account-id-did-key.md) | アカウント ID は Ed25519 公開鍵の did:key とする | Accepted |
 | [0009](0009-deployment-vps-startup-script.md) | インスタンスは国内 VPS のスタートアップスクリプトで立ち上げる | Accepted |
+| [0010](0010-game-picks-in-report.md) | ゲームごとのファイターは結果報告で任意に入力し、両者の入力が一致したときだけ対戦記録に含める | Accepted |

@@ -96,9 +96,9 @@ func (h remoteHosts) Live(ctx context.Context, host shared.InstanceID, id shared
 	return fromLive(live), nil
 }
 
-func (h remoteHosts) Report(ctx context.Context, host shared.InstanceID, id shared.MatchID, by shared.AccountID, r matchdomain.Report, sig string) (matchdomain.Match, error) {
+func (h remoteHosts) Report(ctx context.Context, host shared.InstanceID, id shared.MatchID, by shared.AccountID, sub matchdomain.Submission) (matchdomain.Match, error) {
 	var live fedapp.LiveMatch
-	req := fedapp.RemoteReport{MatchID: id, AccountID: by, Result: string(r), Sig: sig}
+	req := fedapp.RemoteReport{MatchID: id, AccountID: by, Result: string(sub.Report), Sig: sub.Sig, Picks: sub.Picks, PicksSig: sub.PicksSig}
 	if err := h.client.Do(ctx, http.MethodPost, string(host), "/federation/match-reports", req, &live); err != nil {
 		return matchdomain.Match{}, peerErr(err)
 	}
@@ -192,7 +192,8 @@ func (m inboundMatches) Live(ctx context.Context, from string, id shared.MatchID
 }
 
 func (m inboundMatches) Report(ctx context.Context, from string, r fedapp.RemoteReport) (fedapp.LiveMatch, error) {
-	match, err := m.matches.RemoteReport(ctx, shared.InstanceID(from), r.MatchID, r.AccountID, matchdomain.Report(r.Result), r.Sig)
+	sub := matchdomain.Submission{Report: matchdomain.Report(r.Result), Sig: r.Sig, Picks: r.Picks, PicksSig: r.PicksSig}
+	match, err := m.matches.RemoteReport(ctx, shared.InstanceID(from), r.MatchID, r.AccountID, sub)
 	if err != nil {
 		return fedapp.LiveMatch{}, err
 	}
@@ -204,6 +205,7 @@ func toLive(m matchdomain.Match) fedapp.LiveMatch {
 		MatchID: m.ID, Host: string(m.Host), Player1: m.Player1, Player2: m.Player2, Player2Home: string(m.Player2Home),
 		Fighter1: m.Fighter1, Fighter2: m.Fighter2, RoomID: m.RoomID, Status: string(m.Status),
 		Report1: string(m.Report1), Report2: string(m.Report2), Winner: m.Winner, PlayedAt: m.PlayedAt, ExpiresAt: m.ExpiresAt,
+		Picks1: m.Picks1, Picks2: m.Picks2,
 	}
 }
 
@@ -212,6 +214,7 @@ func fromLive(l fedapp.LiveMatch) matchdomain.Match {
 		ID: l.MatchID, Host: shared.InstanceID(l.Host), Player1: l.Player1, Player2: l.Player2, Player2Home: shared.InstanceID(l.Player2Home),
 		Fighter1: l.Fighter1, Fighter2: l.Fighter2, RoomID: l.RoomID, Status: matchdomain.Status(l.Status),
 		Report1: matchdomain.Report(l.Report1), Report2: matchdomain.Report(l.Report2), Winner: l.Winner, PlayedAt: l.PlayedAt, ExpiresAt: l.ExpiresAt,
+		Picks1: l.Picks1, Picks2: l.Picks2,
 	}
 }
 

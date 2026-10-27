@@ -147,6 +147,9 @@ func DecodeMatchRecorded(e Event, verify VerifyDID) (shared.MatchRecord, error) 
 	if len(r.Players) != 2 || r.Players[0].AccountID == r.Players[1].AccountID || (r.Winner != 0 && r.Winner != 1) {
 		return r, errors.New("MatchRecorded: invalid players or winner")
 	}
+	if !shared.ValidPicks(r.Picks) {
+		return r, errors.New("MatchRecorded: invalid picks")
+	}
 	if len(r.Signatures) != 2 {
 		return r, errors.New("MatchRecorded: both players must sign")
 	}
