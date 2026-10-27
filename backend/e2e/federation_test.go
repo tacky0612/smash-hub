@@ -140,3 +140,38 @@ func TestCrossInstancePicksAreValidatedAndFallBack(t *testing.T) {
 			len(history[0].RecordedPicks) == 1 && history[0].RecordedPicks[0].Characters[1] == "fox"
 	})
 }
+
+// ホスト（Instance2）の管理者が無効化した記録は、連合先（Instance1）でもレート計算から除外される。
+func TestVoidIsReplicatedToPeer(t *testing.T) {
+	shiro := newPlayer(t, instance2, "shiro")
+	umeko := newPlayer(t, instance2, "umeko")
+	id := matchUntilBoth(t, shiro, umeko)
+	shiro.report(id, "win")
+	if m := umeko.report(id, "lose"); m.Status != "confirmed" {
+		t.Fatalf("確定しない: %+v", m)
+	}
+	eventually(t, "Instance1 への記録の複製", func() bool {
+		return shiro.standingOn(instance1, shiro.ID).Matches == 1
+	})
+
+	// 連合先（Instance1）の管理者は、Instance2 がホストした対戦を無効化できない
+	newAdmin(t, instance1).call("POST", "/api/admin/voids", map[string]string{"matchId": id, "reason": "collusion"}, http.StatusNotFound, nil)
+
+	newAdmin(t, instance2).call("POST", "/api/admin/voids", map[string]string{"matchId": id, "reason": "collusion"}, http.StatusNoContent, nil)
+	for _, p := range []*player{shiro, umeko} {
+		if s := p.standingOn(instance2, p.ID); s.Matches != 0 || s.Rating != 1500 {
+			t.Errorf("Instance2: 無効化後のレート %+v", s)
+		}
+	}
+	eventually(t, "Instance1 への無効化の複製", func() bool {
+		a, b := shiro.standingOn(instance1, shiro.ID), shiro.standingOn(instance1, umeko.ID)
+		return a.Matches == 0 && a.Rating == 1500 && b.Matches == 0 && b.Rating == 1500
+	})
+}
+
+// 利用停止中の利用者は、自分のインスタンスで対戦相手を探せない。
+func TestSuspendedPlayerCannotSearch(t *testing.T) {
+	goro := newPlayer(t, instance1, "goro")
+	newAdmin(t, instance1).call("POST", "/api/admin/sanctions", map[string]any{"accountId": goro.ID, "kind": "red", "reason": "cheating"}, http.StatusCreated, nil)
+	goro.call("POST", "/api/matchmaking/search", map[string]any{"fighter": "mario", "rateRange": 0}, http.StatusForbidden, nil)
+}

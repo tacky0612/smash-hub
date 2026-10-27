@@ -39,6 +39,12 @@ type RemoteRequests interface {
 	Withdraw(id string)
 }
 
+// Eligibility は利用者がレーティング対戦をできるかを確かめる（moderation コンテキストが実装し、bootstrap で接続する）。
+// 利用停止中なら理由付きの shared.ErrForbidden を返す。他インスタンスの利用者も、このインスタンスで利用停止にできる。
+type Eligibility interface {
+	CanPlay(ctx context.Context, id shared.AccountID) error
+}
+
 // State はマッチングの状態。
 type State string
 
@@ -65,6 +71,14 @@ type Service struct {
 	Ratings  RatingReader
 	Clock    shared.Clock
 	Remote   RemoteRequests // 未設定なら他インスタンスとはマッチングしない
+	Eligible Eligibility    // 未設定なら利用停止を確かめない
+}
+
+func (s *Service) canPlay(ctx context.Context, id shared.AccountID) error {
+	if s.Eligible == nil {
+		return nil
+	}
+	return s.Eligible.CanPlay(ctx, id)
 }
 
 const candidateLimit = 50
@@ -83,6 +97,9 @@ func (s *Service) Search(ctx context.Context, account shared.AccountID, fighter 
 		} else if id != "" {
 			st = Status{State: StateMatched, MatchID: id}
 			return nil
+		}
+		if err := s.canPlay(ctx, account); err != nil {
+			return err
 		}
 		// 既に待機中なら、新しい条件で探し直す
 		if old, err := s.Requests.WaitingForUpdate(ctx, account); err == nil {
@@ -202,6 +219,12 @@ func (s *Service) AcceptClaim(ctx context.Context, from shared.InstanceID, reque
 		if err != nil {
 			return err
 		}
+		// このインスタンスで利用停止にした他インスタンスの利用者からの申し込みは受け付けない
+		if err := s.canPlay(ctx, account); errors.Is(err, shared.ErrForbidden) {
+			return ErrRequestUnavailable
+		} else if err != nil {
+			return err
+		}
 		rating, err := s.Ratings.CurrentRating(ctx, account)
 		if err != nil {
 			return err
@@ -270,6 +293,12 @@ func (s *Service) tryRemote(ctx context.Context, req domain.Request, now time.Ti
 	for _, c := range remotes {
 		if c.AccountID == req.AccountID || !c.CreatedAt.Before(req.CreatedAt) {
 			continue
+		}
+		// このインスタンスで利用停止にした他インスタンスの利用者とはマッチングしない
+		if err := s.canPlay(ctx, c.AccountID); errors.Is(err, shared.ErrForbidden) {
+			continue
+		} else if err != nil {
+			return Status{}, false, err
 		}
 		// 配信された申告値ではなく、自インスタンスが対戦記録から計算したレートで判定する
 		if c.Rating, err = s.Ratings.CurrentRating(ctx, c.AccountID); err != nil {

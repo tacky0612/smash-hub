@@ -42,6 +42,13 @@ type Config struct {
 	AccountKeySecret   []byte        // アカウントの秘密鍵を暗号化する鍵暗号化鍵（KEK）。32バイト以上
 	Peers              []string      // 連合先（許可リスト）のベース URL
 	SyncInterval       time.Duration // 連合先のログを取りに行く間隔
+
+	// 運営（docs/operations/）
+	AdminAccountIDs []string // 管理者のアカウント ID（did:key）
+	// DevAdminNames は開発用ログインの名前で管理者を指定する（DEV_LOGIN_ENABLED のときだけ。E2E テスト用）
+	DevAdminNames   []string
+	TermsFile       string // インスタンス独自の利用規約（Markdown）。空ならプロジェクト共通のひな形
+	OperatorContact string // 利用規約・画面に載せる問い合わせ先
 }
 
 // DiscordEnabled は Discord ログインが設定されているかを返す。
@@ -77,6 +84,10 @@ func Load() (Config, error) {
 			c.Peers = append(c.Peers, p)
 		}
 	}
+	c.AdminAccountIDs = list(os.Getenv("ADMIN_ACCOUNT_IDS"))
+	c.DevAdminNames = list(os.Getenv("DEV_ADMIN_NAMES"))
+	c.TermsFile = os.Getenv("TERMS_FILE")
+	c.OperatorContact = strings.TrimSpace(os.Getenv("OPERATOR_CONTACT"))
 	sync, err := time.ParseDuration(env("FEDERATION_SYNC_INTERVAL", "5s"))
 	if err != nil {
 		return c, fmt.Errorf("FEDERATION_SYNC_INTERVAL: %w", err)
@@ -107,7 +118,26 @@ func Load() (Config, error) {
 	if c.Env == "production" && c.DevLoginEnabled {
 		return c, errors.New("DEV_LOGIN_ENABLED must not be true in production")
 	}
+	if len(c.DevAdminNames) > 0 && !c.DevLoginEnabled {
+		return c, errors.New("DEV_ADMIN_NAMES requires DEV_LOGIN_ENABLED")
+	}
+	for _, id := range c.AdminAccountIDs {
+		if !strings.HasPrefix(id, "did:key:") {
+			return c, fmt.Errorf("ADMIN_ACCOUNT_IDS: %q is not an account ID (did:key:...)", id)
+		}
+	}
 	return c, nil
+}
+
+// list はカンマ区切りの値を、空白を除いて返す。
+func list(v string) []string {
+	var out []string
+	for _, s := range strings.Split(v, ",") {
+		if s = strings.TrimSpace(s); s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 func env(key, def string) string {

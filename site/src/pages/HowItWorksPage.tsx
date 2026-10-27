@@ -66,7 +66,7 @@ export function HowItWorksPage() {
               [<strong>インスタンス</strong>, "連合に参加している1つのサイト（サーバー）。SmashHub のソフトウェアでも、プロトコルを独自に実装した既存のサイトでもかまいません。"],
               [<strong>ホームインスタンス</strong>, "利用者がアカウントを作り、ログインしているインスタンス。"],
               [<strong>アカウント ID</strong>, <>利用者ごとの Ed25519 公開鍵から作る識別子（<C>did:key:z6Mk…</C>）。連合の中では、サイトのユーザー ID ではなくこの ID で人を識別します。</>],
-              [<strong>イベント</strong>, <>インスタンスが確定させた出来事。アカウントの公開（<C>AccountPublished</C>）と対戦記録（<C>MatchRecorded</C>）があります。</>],
+              [<strong>イベント</strong>, <>インスタンスが確定させた出来事。アカウントの公開（<C>AccountPublished</C>）、対戦記録（<C>MatchRecorded</C>）、記録の無効化（<C>MatchVoided</C>）があります。</>],
               [<strong>ログ</strong>, "イベントを連番で追記していく、インスタンスごとの記録の帳簿。書き換え・削除はせず、取り消しも新しいイベントの追記で表します。"],
               [<strong>SmashHubレート</strong>, "連合で共有された対戦記録から、全インスタンスが同じ手順で計算する1つのレート。"],
             ]}

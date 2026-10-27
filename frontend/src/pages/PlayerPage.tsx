@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { api, type Match, type Standing } from "../api";
 import { useApp } from "../context";
+import { ReportForm } from "./ReportForm";
 
 const STATUS_LABELS: Record<Match["status"], string> = {
   in_progress: "対戦中",
@@ -12,16 +13,21 @@ const STATUS_LABELS: Record<Match["status"], string> = {
 
 export function PlayerPage() {
   const { id = "" } = useParams();
-  const { fighterName } = useApp();
+  const { me, fighterName } = useApp();
+  const myId = me?.loggedIn && me.registered ? me.account.id : "";
   const [standing, setStanding] = useState<Standing | null>(null);
   const [history, setHistory] = useState<Match[]>([]);
+  const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
+    setReporting(false);
     void api.standing(id).then(setStanding);
     void api.history(id).then(setHistory);
   }, [id]);
 
   if (!standing) return <p className="loading">読み込み中…</p>;
+  // 通報の対象に選べるのは、自分との対戦だけ
+  const withMe = history.filter((m) => m.player1.player.id === myId || m.player2.player.id === myId);
   return (
     <>
       <section className="card">
@@ -46,11 +52,13 @@ export function PlayerPage() {
               const result =
                 m.status === "confirmed" ? (m.winner === id ? "勝ち" : "負け") : STATUS_LABELS[m.status];
               return (
-                <li key={m.id}>
-                  <span className={`result ${result === "勝ち" ? "win" : result === "負け" ? "lose" : ""}`}>{result}</span>
+                <li key={`${m.host} ${m.id}`}>
+                  <span className={`result ${m.voided ? "" : result === "勝ち" ? "win" : result === "負け" ? "lose" : ""}`}>
+                    {result}
+                  </span>
                   <span>
                     {fighterName(self.fighter)} vs <Link to={`/players/${opp.player.id}`}>{opp.player.displayName}</Link>（
-                    {fighterName(opp.fighter)}）
+                    {fighterName(opp.fighter)}）{m.voided && <span className="badge">無効</span>}
                   </span>
                   <time className="muted small">{new Date(m.playedAt).toLocaleString("ja-JP")}</time>
                 </li>
@@ -58,7 +66,25 @@ export function PlayerPage() {
             })}
           </ul>
         )}
+        {history.some((m) => m.voided) && (
+          <p className="muted small">「無効」の対戦は、運営者が無効化したためレートに含めていません。</p>
+        )}
       </section>
+      {myId && myId !== id && (
+        <section className="card">
+          <h2>通報</h2>
+          {reporting ? (
+            <ReportForm targetId={id} matches={withMe} onDone={() => setReporting(false)} />
+          ) : (
+            <>
+              <p className="muted small">禁止事項に当たる行為があった場合は、運営者に通報してください。通報したことは相手に知らせません。</p>
+              <button className="button" onClick={() => setReporting(true)}>
+                このプレイヤーを通報する
+              </button>
+            </>
+          )}
+        </section>
+      )}
     </>
   );
 }

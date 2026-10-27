@@ -13,7 +13,8 @@ const RATE_RANGES = [
 ];
 
 export function HomePage() {
-  const { me } = useApp();
+  const { me, moderation } = useApp();
+  const suspension = moderation?.suspension;
   const navigate = useNavigate();
   const account = me?.loggedIn && me.registered ? me.account : null;
   const [standing, setStanding] = useState<Standing | null>(null);
@@ -82,7 +83,13 @@ export function HomePage() {
 
       <section className="card">
         <h2>レーティング対戦</h2>
-        {status.state === "waiting" ? (
+        {suspension && status.state !== "waiting" ? (
+          <p className="notice warning">
+            運営者の判断により、レーティング対戦の利用を
+            {suspension.endsAt ? ` ${new Date(suspension.endsAt).toLocaleString("ja-JP")} まで` : "無期限で"}
+            停止しています。進行中の対戦の結果報告と、記録の確認はできます。
+          </p>
+        ) : status.state === "waiting" ? (
           <div className="waiting">
             <p className="pulse">対戦相手を探しています…</p>
             <p className="muted">

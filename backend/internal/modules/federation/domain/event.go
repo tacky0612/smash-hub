@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
+	"time"
 
 	shared "github.com/tacky0612/smash-hub/backend/internal/shared/domain"
 )
@@ -16,6 +18,7 @@ import (
 const (
 	TypeAccountPublished = "AccountPublished"
 	TypeMatchRecorded    = "MatchRecorded"
+	TypeMatchVoided      = "MatchVoided"
 )
 
 // EventVersion はイベントのスキーマのバージョン。
@@ -161,4 +164,54 @@ func DecodeMatchRecorded(e Event, verify VerifyDID) (shared.MatchRecord, error) 
 		}
 	}
 	return r, nil
+}
+
+// VoidDeadline は無効化の期限。ホストがログに追記した日時と played_at の差がこれを超える無効化は、
+// レート計算で有効にしない（確定レートを変えないため。docs/domain/rating.md の「4. 決定性を守るための約束」）。
+const VoidDeadline = 7 * 24 * time.Hour
+
+// 無効化の事由。連合で共有されるため、自由記述は持たず区分だけを持つ（個人情報を含めない）。
+const (
+	VoidCollusion   = "collusion"    // 八百長
+	VoidCheating    = "cheating"     // 改造・チート・不正な入力機器
+	VoidFalseReport = "false_report" // 虚偽の報告
+	VoidError       = "error"        // 記録の誤り
+	VoidOther       = "other"
+)
+
+// VoidReasons は自インスタンスが発行する無効化の事由。
+var VoidReasons = []string{VoidCollusion, VoidCheating, VoidFalseReport, VoidError, VoidOther}
+
+// MatchVoided は対戦記録の無効化。対象は記録 ID で指す（federation.md 12.1）。
+type MatchVoided struct {
+	RecordID string `json:"record_id"`
+	Reason   string `json:"reason"`
+}
+
+var (
+	recordIDPattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
+	// 新しいバージョンで追加された事由も取り込めるよう、書式だけを確かめる
+	voidReasonPattern = regexp.MustCompile(`^[a-z_]{1,32}$`)
+)
+
+// DecodeMatchVoided は payload の形を検証して取り出す。対象の記録が発行元のインスタンスのものかは、
+// 記録を保存している側（application）が確かめる。
+func DecodeMatchVoided(e Event) (MatchVoided, error) {
+	var v MatchVoided
+	if err := json.Unmarshal(e.Payload, &v); err != nil {
+		return v, err
+	}
+	if !recordIDPattern.MatchString(v.RecordID) {
+		return v, errors.New("MatchVoided: invalid record_id")
+	}
+	if !voidReasonPattern.MatchString(v.Reason) {
+		return v, errors.New("MatchVoided: invalid reason")
+	}
+	return v, nil
+}
+
+// VoidEffective は、played_at の記録に対して voidedAt（ホストがログに追記した日時）に発行された無効化が
+// レート計算で有効かを返す。
+func VoidEffective(playedAt, voidedAt time.Time) bool {
+	return voidedAt.Sub(playedAt) <= VoidDeadline
 }

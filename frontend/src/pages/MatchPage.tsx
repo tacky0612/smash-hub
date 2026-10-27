@@ -182,6 +182,12 @@ function StatusMessage({ match }: { match: Match }) {
   switch (match.status) {
     case "confirmed": {
       const winner = match.winner === match.player1.player.id ? match.player1 : match.player2;
+      if (match.voided)
+        return (
+          <p className="notice warning">
+            {winner.player.displayName} の勝ちで確定しましたが、運営者が無効化したため、レートには含めていません。
+          </p>
+        );
       return <p className="notice success">{winner.player.displayName} の勝ちで確定しました。レートに反映されています。</p>;
     }
     case "cancelled":

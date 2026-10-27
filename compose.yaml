@@ -13,6 +13,8 @@ x-backend-env: &backend-env
   HTTP_ADDR: ":8081"
   COOKIE_SECURE: "false"
   DEV_LOGIN_ENABLED: "true"
+  # 開発用ログインでこの名前を入れると管理者になる（通報の確認・処分・無効化を試せる。e2e-admin は E2E テスト用）
+  DEV_ADMIN_NAMES: ${DEV_ADMIN_NAMES:-admin,e2e-admin}
   CLIENT_IP_HEADER: X-Real-IP
   RANKING_MIN_MATCHES: ${RANKING_MIN_MATCHES:-1}
   FEDERATION_SYNC_INTERVAL: ${FEDERATION_SYNC_INTERVAL:-2s}

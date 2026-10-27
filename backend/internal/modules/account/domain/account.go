@@ -16,6 +16,9 @@ type Account struct {
 	DisplayName string
 	MainFighter shared.FighterID
 	CreatedAt   time.Time
+	// 登録時に同意した利用規約の版と日時（公開しない）
+	TermsVersion  string
+	TermsAgreedAt time.Time
 }
 
 // NewAccount は入力値を検証してアカウントを作る。
@@ -39,6 +42,11 @@ func (a *Account) ChangeProfile(displayName string, mainFighter shared.FighterID
 	a.DisplayName = displayName
 	a.MainFighter = mainFighter
 	return nil
+}
+
+// AgreeTerms は利用規約の版 version に同意したことを記録する。
+func (a *Account) AgreeTerms(version string, now time.Time) {
+	a.TermsVersion, a.TermsAgreedAt = version, now
 }
 
 // Session はログイン状態。外部プロバイダーでの認証が済んでいれば、アカウント登録前でも存在する。

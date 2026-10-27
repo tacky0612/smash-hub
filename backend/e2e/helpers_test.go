@@ -97,8 +97,40 @@ func newPlayer(t *testing.T, base, name string) *player {
 	if len([]rune(display)) > 20 {
 		display = string([]rune(display)[:20])
 	}
-	p.call("POST", "/api/register", map[string]string{"displayName": display, "mainFighter": "mario"}, http.StatusCreated, &a)
+	p.call("POST", "/api/register", map[string]string{"displayName": display, "mainFighter": "mario", "termsVersion": p.termsVersion()}, http.StatusCreated, &a)
 	p.ID = a.ID
+	return p
+}
+
+// termsVersion は現在の利用規約の版を返す（登録時に同意する版）。
+func (p *player) termsVersion() string {
+	p.t.Helper()
+	var tos struct {
+		Version string `json:"version"`
+	}
+	p.call("GET", "/api/terms", nil, http.StatusOK, &tos)
+	return tos.Version
+}
+
+// adminName は管理者にする開発用ログインの名前（compose.yaml の DEV_ADMIN_NAMES）。
+const adminName = "e2e-admin"
+
+// newAdmin は base のインスタンスの管理者でログインする。DB を使い回した場合は登録済みのアカウントを使う。
+func newAdmin(t *testing.T, base string) *player {
+	t.Helper()
+	jar, _ := cookiejar.New(nil)
+	p := &player{t: t, base: base, client: &http.Client{Jar: jar, Timeout: 10 * time.Second}, Name: adminName}
+	var me struct {
+		Registered bool `json:"registered"`
+		Account    struct {
+			ID string `json:"id"`
+		} `json:"account"`
+	}
+	p.call("POST", "/api/auth/dev/login", map[string]string{"name": adminName}, http.StatusOK, &me)
+	if !me.Registered {
+		p.call("POST", "/api/register", map[string]string{"displayName": "admin", "mainFighter": "mario", "termsVersion": p.termsVersion()}, http.StatusCreated, &me.Account)
+	}
+	p.ID = me.Account.ID
 	return p
 }
 

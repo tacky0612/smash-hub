@@ -1,0 +1,156 @@
+# 本番インスタンス用の Docker Compose 構成（docs/operations/deployment.md）。
+# 開発用のリポジトリ直下の compose.yaml とは別物です。
+#
+# 直接 docker compose を叩かず、ラッパーの smash-hub コマンド（deploy/smash-hub.sh）から使ってください。
+# 設定はリポジトリの外のファイルから読み込みます（どちらもリポジトリにコミットしない）。
+#   /opt/smash-hub/smash-hub.env  運営者が編集する設定（ドメイン・インスタンス名・Discord・管理者など）
+#   /opt/smash-hub/secrets.env    setup.sh が生成した秘密情報（署名鍵・ペッパー・暗号化鍵・DB のパスワード）
+#
+# 構成（外に公開するのは caddy の 80/443 だけ）:
+#   caddy   HTTPS の終端（証明書は自動で取得・更新）。/api/・/federation/ は backend へ、それ以外は web へ
+#   web     フロントエンド（frontend/ のイメージ。静的ファイルを配信する nginx）
+#   backend バックエンド（backend/ のイメージ）。起動時に DB のマイグレーションを自動で実行する
+#   db      PostgreSQL
+#
+# メモリ 1GB の VPS で動くよう、各サービスにメモリの上限を付け、PostgreSQL の設定を控えめにしています。
+name: smash-hub-prod
+
+# コンテナのログ（標準出力）は Docker が保存する。ディスクを使い切らないよう大きさで上限を付ける
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    environment:
+      DOMAIN: ${DOMAIN:?smash-hub.env に DOMAIN を設定してください}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # 証明書と ACME のアカウント。消えると再取得になる（Let's Encrypt の発行回数の制限に注意）
+      - caddy-data:/data
+      - caddy-config:/config
+    healthcheck:
+      # 管理 API（コンテナ内の localhost だけで待ち受ける）が応答すれば起動済みとみなす
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:2019/config/ > /dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      web:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    mem_limit: 128m
+    logging: *logging
+
+  web:
+    build: ../frontend
+    image: smash-hub-web:local
+    restart: unless-stopped
+    environment:
+      # /api/ の中継は使わない（caddy が backend に直接流す）が、ヘルスチェックで使う
+      BACKEND_URL: http://backend:8081
+    healthcheck:
+      # backend と DB まで含めて応答できることを確認する（backend のイメージにはシェルがないため、ここで確かめる）
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/api/health | grep -q ok"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      - backend
+    mem_limit: 64m
+    logging: *logging
+
+  backend:
+    build: ../backend
+    image: smash-hub-backend:local
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      HTTP_ADDR: ":8081"
+      COOKIE_SECURE: "true"
+      DEV_LOGIN_ENABLED: "false"
+      # caddy が付ける X-Real-IP（利用者が送ってきた値は caddy が上書きする）。backend は caddy の後ろにだけ置く
+      CLIENT_IP_HEADER: X-Real-IP
+      DATABASE_URL: postgres://smashhub:${DB_PASSWORD:?secrets.env に DB_PASSWORD がありません}@db:5432/smashhub?sslmode=disable
+      PUBLIC_BASE_URL: https://${DOMAIN}
+      INSTANCE_URL: https://${DOMAIN}
+      INSTANCE_NAME: ${INSTANCE_NAME:-}
+      PEERS: ${PEERS:-}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
+      DISCORD_REDIRECT_URL: https://${DOMAIN}/api/auth/discord/callback
+      ADMIN_ACCOUNT_IDS: ${ADMIN_ACCOUNT_IDS:-}
+      TERMS_FILE: ${TERMS_FILE:-}
+      OPERATOR_CONTACT: ${OPERATOR_CONTACT:-}
+      SOURCE_CODE_URL: ${SOURCE_CODE_URL:-}
+      SEASON_ID: ${SEASON_ID:-}
+      SEASON_START: ${SEASON_START:-}
+      RANKING_MIN_MATCHES: ${RANKING_MIN_MATCHES:-}
+      ACCESS_LOG_RETENTION_DAYS: ${ACCESS_LOG_RETENTION_DAYS:-}
+      FEDERATION_SYNC_INTERVAL: ${FEDERATION_SYNC_INTERVAL:-}
+      # 秘密情報（secrets.env）
+      INSTANCE_PRIVATE_KEY: ${INSTANCE_PRIVATE_KEY:?secrets.env に INSTANCE_PRIVATE_KEY がありません}
+      IDENTIFIER_PEPPER: ${IDENTIFIER_PEPPER:?secrets.env に IDENTIFIER_PEPPER がありません}
+      ACCOUNT_KEY_SECRET: ${ACCOUNT_KEY_SECRET:?secrets.env に ACCOUNT_KEY_SECRET がありません}
+      # mem_limit より少し下で GC を強めに働かせる
+      GOMEMLIMIT: 160MiB
+    volumes:
+      # インスタンス独自のファイル（利用規約 terms.md など）。TERMS_FILE=/etc/smash-hub/custom/terms.md のように指定する
+      - ${SMASH_HUB_HOME:-/opt/smash-hub}/custom:/etc/smash-hub/custom:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    mem_limit: 192m
+    logging: *logging
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: smashhub
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: smashhub
+    # メモリ 1GB の VPS 向けの控えめな設定
+    command:
+      - postgres
+      - -c
+      - max_connections=40
+      - -c
+      - shared_buffers=64MB
+      - -c
+      - effective_cache_size=192MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - maintenance_work_mem=32MB
+      - -c
+      - wal_buffers=4MB
+      - -c
+      - max_wal_size=512MB
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smashhub -d smashhub"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+    shm_size: 128m
+    mem_limit: 320m
+    logging: *logging
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:

@@ -9,6 +9,7 @@ import (
 	"github.com/tacky0612/smash-hub/backend/internal/modules/account/domain"
 	"github.com/tacky0612/smash-hub/backend/internal/platform/crypto"
 	"github.com/tacky0612/smash-hub/backend/internal/platform/httpx"
+	"github.com/tacky0612/smash-hub/backend/internal/platform/terms"
 	shared "github.com/tacky0612/smash-hub/backend/internal/shared/domain"
 )
 
@@ -23,6 +24,8 @@ type HTTP struct {
 	PublicBaseURL   string
 	SourceCodeURL   string
 	InstanceName    string
+	Terms           terms.Terms
+	OperatorContact string
 }
 
 // AccountView はアカウントの公開情報。
@@ -41,6 +44,7 @@ func ToView(a domain.Account) AccountView {
 func (h *HTTP) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/instance", h.instance)
 	mux.HandleFunc("GET /api/fighters", h.fighters)
+	mux.HandleFunc("GET /api/terms", h.terms)
 	mux.HandleFunc("POST /api/auth/dev/login", h.devLogin)
 	mux.HandleFunc("GET /api/auth/discord/start", h.discordStart)
 	mux.HandleFunc("GET /api/auth/discord/callback", h.discordCallback)
@@ -48,6 +52,7 @@ func (h *HTTP) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/me", h.me)
 	mux.HandleFunc("POST /api/register", h.register)
 	mux.HandleFunc("PUT /api/me/profile", h.updateProfile)
+	mux.HandleFunc("POST /api/me/terms", h.agreeTerms)
 }
 
 // Middleware はセッション Cookie を検証し、登録済みならアカウント ID を ctx に入れる。
@@ -66,11 +71,16 @@ func (h *HTTP) instance(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{
 		"name":          h.InstanceName,
 		"sourceCodeUrl": h.SourceCodeURL,
+		"contact":       h.OperatorContact,
 		"loginProviders": map[string]bool{
 			"dev":     h.DevLoginEnabled,
 			"discord": h.Service.Discord != nil,
 		},
 	})
+}
+
+func (h *HTTP) terms(w http.ResponseWriter, r *http.Request) {
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"text": h.Terms.Text, "version": h.Terms.Version, "custom": h.Terms.Custom})
 }
 
 func (h *HTTP) fighters(w http.ResponseWriter, r *http.Request) {
@@ -155,6 +165,8 @@ func (h *HTTP) writeMe(w http.ResponseWriter, r *http.Request, token string) {
 	res := map[string]any{"loggedIn": true, "registered": me.Registered}
 	if me.Account != nil {
 		res["account"] = ToView(*me.Account)
+		// false なら、更新された利用規約への同意を求める
+		res["termsAccepted"] = h.Service.TermsAccepted(*me.Account)
 	}
 	httpx.WriteJSON(w, http.StatusOK, res)
 }
@@ -173,12 +185,14 @@ func (h *HTTP) register(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		DisplayName string           `json:"displayName"`
 		MainFighter shared.FighterID `json:"mainFighter"`
+		// 同意した利用規約の版（GET /api/terms の version）
+		TermsVersion string `json:"termsVersion"`
 	}
 	if err := httpx.ReadJSON(r, &req); err != nil {
 		httpx.WriteError(w, err)
 		return
 	}
-	a, err := h.Service.Register(r.Context(), sess, req.DisplayName, req.MainFighter)
+	a, err := h.Service.Register(r.Context(), sess, req.DisplayName, req.MainFighter, req.TermsVersion)
 	if err != nil {
 		httpx.WriteError(w, err)
 		return
@@ -206,6 +220,26 @@ func (h *HTTP) updateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, ToView(a))
+}
+
+func (h *HTTP) agreeTerms(w http.ResponseWriter, r *http.Request) {
+	id, err := httpx.AccountID(r.Context())
+	if err != nil {
+		httpx.WriteError(w, err)
+		return
+	}
+	var req struct {
+		TermsVersion string `json:"termsVersion"`
+	}
+	if err := httpx.ReadJSON(r, &req); err != nil {
+		httpx.WriteError(w, err)
+		return
+	}
+	if _, err := h.Service.AgreeTerms(r.Context(), id, req.TermsVersion); err != nil {
+		httpx.WriteError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *HTTP) setSession(w http.ResponseWriter, token string) {

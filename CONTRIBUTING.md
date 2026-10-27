@@ -61,12 +61,14 @@ make test-integration  # バックエンドの結合テスト（PostgreSQL を D
 make test-e2e          # E2E テスト（2つのインスタンスで、連合での対戦の流れを検証）
 make test-frontend     # フロントエンドの型チェックとビルド
 make test-site         # 紹介サイト（GitHub Pages）の型チェックとビルド
+make check-deploy      # 本番用のデプロイ構成（deploy/）の検証
 ```
 
 - 2つのインスタンスは互いを連合先にしています。Instance1 と Instance2 にそれぞれ別の利用者でログインすると、インスタンスをまたいだ対戦と記録の複製を試せます。
 - データベースの形式を変えた後などに初期化したい場合は `docker compose down -v` で DB を消してから `make up` してください。
 
 - ローカル環境では **開発用ログイン**（名前を入れるだけ）が有効です。ブラウザのシークレットウィンドウや別のブラウザを使うと、2人目の利用者として対戦を試せます。
+- 開発用ログインで名前に `admin` と入れると管理者になり、通報の確認・処分・対戦の無効化（メニューの「管理」）を試せます。
 - Discord ログインを試す場合は、Discord Developer Portal でアプリを作り、`DISCORD_CLIENT_ID`・`DISCORD_CLIENT_SECRET`・`DISCORD_REDIRECT_URL`（`http://localhost:8080/api/auth/discord/callback`）を環境変数で渡して `make up` してください。
 - 個別の詳細は [backend/README.md](backend/README.md)・[frontend/README.md](frontend/README.md) を参照してください。
 

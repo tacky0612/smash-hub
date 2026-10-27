@@ -32,6 +32,18 @@ type RecordReader interface {
 	RecordsFor(ctx context.Context, account shared.AccountID, limit int) ([]shared.MatchRecord, error)
 }
 
+// MatchRef は対戦をホストと対戦 ID で指す（対戦 ID はホストごとに一意）。
+type MatchRef struct {
+	Host shared.InstanceID
+	ID   shared.MatchID
+}
+
+// VoidReader は、確定した対戦のうちモデレーションで無効化された（レート計算から除外された）ものを返す
+// （federation コンテキストが実装する）。
+type VoidReader interface {
+	VoidedMatches(ctx context.Context, refs []MatchRef) (map[MatchRef]bool, error)
+}
+
 // RemoteHosts は他インスタンスがホストする対戦の状態の取得と、結果報告の中継を行う（federation が実装する）。
 type RemoteHosts interface {
 	Live(ctx context.Context, host shared.InstanceID, id shared.MatchID) (domain.Match, error)
@@ -50,6 +62,7 @@ type Service struct {
 	Publisher RecordPublisher
 	Records   RecordReader
 	Hosts     RemoteHosts
+	Voids     VoidReader // 未設定なら無効化を表示しない
 	// VerifyDID は did:key のアカウント ID で署名を検証する
 	VerifyDID func(did string, msg []byte, sig string) bool
 }
@@ -261,6 +274,20 @@ func (s *Service) LiveForPeer(ctx context.Context, from shared.InstanceID, id sh
 		return domain.Match{}, shared.ErrForbidden
 	}
 	return m, nil
+}
+
+// Voided は ms のうち、無効化された確定済みの対戦を返す。
+func (s *Service) Voided(ctx context.Context, ms ...domain.Match) (map[MatchRef]bool, error) {
+	var refs []MatchRef
+	for _, m := range ms {
+		if m.Status == domain.StatusConfirmed {
+			refs = append(refs, MatchRef{Host: m.Host, ID: m.ID})
+		}
+	}
+	if s.Voids == nil || len(refs) == 0 {
+		return map[MatchRef]bool{}, nil
+	}
+	return s.Voids.VoidedMatches(ctx, refs)
 }
 
 // History は id の最近の対戦を返す。自インスタンスがホストした対戦と、連合で共有された確定済みの記録を合わせる。

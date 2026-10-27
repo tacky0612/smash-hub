@@ -54,6 +54,8 @@ SmashHub の設計・方針・計画をまとめたドキュメント群です�
 |---|---|
 | [operations/server-covenant.md](operations/server-covenant.md) | 連合に参加するサーバー運用者の約束事 |
 | [operations/easy-deployment.md](operations/easy-deployment.md) | 技術者でなくてもインスタンスを立てられるようにするための議論（結論は [ADR 0009](adr/0009-deployment-vps-startup-script.md)） |
+| [operations/deployment.md](operations/deployment.md) | インスタンスの立て方（本番。VPS・セットアップスクリプト・更新・バックアップ。技術者向け） |
+| [operations/discord-app.md](operations/discord-app.md) | Discord アプリの作成（Discord ログインの設定。運営者向け） |
 
 ## ドキュメントの書き方
 

@@ -24,3 +24,4 @@ SmashHub の重要な設計判断を記録します。運営者や開発者が�
 | [0009](0009-deployment-vps-startup-script.md) | インスタンスは国内 VPS のスタートアップスクリプトで立ち上げる | Accepted |
 | [0010](0010-game-picks-in-report.md) | ゲームごとのファイターは結果報告で任意に入力し、両者の入力が一致したときだけ対戦記録に含める | Accepted |
 | [0011](0011-federation-participation-conditions.md) | 連合への参加条件を、記録と利用者の保護に絞る | Accepted |
+| [0012](0012-match-voided-host-only-within-7-days.md) | 対戦記録の無効化は、記録のホストだけが対戦から 7日以内に発行できる | Accepted |

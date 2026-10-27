@@ -118,3 +118,19 @@ label.radio input { width: auto; margin: 0; }
 .game-row .fixed { display: block; padding: 6px 0; font-weight: 600; }
 .picks { width: 100%; border-collapse: collapse; }
 .picks th, .picks td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--border); }
+
+/* 利用規約・通報・管理画面 */
+textarea {
+  display: block; width: 100%; margin-top: 4px; padding: 10px 12px; font: inherit; resize: vertical;
+  color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+}
+textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.markdown h1 { font-size: 1.3rem; }
+.markdown h2 { font-size: 1.05rem; margin: 20px 0 8px; }
+.markdown p, .markdown li { line-height: 1.7; }
+.terms-box { max-height: 280px; overflow-y: auto; margin: 8px 0; padding: 4px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--subtle); font-size: 0.9rem; }
+.badge { margin-left: 6px; padding: 1px 8px; font-size: 0.75rem; font-weight: 700; border-radius: 999px; color: var(--accent-text); background: var(--warning); }
+.report-body { white-space: pre-wrap; padding: 10px 12px; border-radius: 8px; background: var(--subtle); }
+.link-button { padding: 0; font: inherit; font-size: 0.85rem; color: var(--accent); background: none; border: none; text-decoration: underline; cursor: pointer; }
+.sanction-form { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--border); }
+.break { overflow-wrap: anywhere; }

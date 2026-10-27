@@ -12,7 +12,7 @@ SmashHub は、大乱闘スマッシュブラザーズ SPECIAL の対戦マッ�
 
 ## 現在のステータス
 
-**開発初期** です。対戦の一連の流れが動き、2つのインスタンスが SmashHubプロトコルで対戦記録を複製し合い、インスタンスをまたいで対戦できます。ログの再配布・アカウント移行・拒否ステージなどは未実装です（[backend/README.md の「実装状況」](backend/README.md#実装状況)）。
+**開発初期** です。対戦の一連の流れが動き、2つのインスタンスが SmashHubプロトコルで対戦記録を複製し合い、インスタンスをまたいで対戦できます。通報・処分・対戦記録の無効化、利用規約への同意、本番用のデプロイ構成（`deploy/`）もあります。ログの再配布・アカウント移行・拒否ステージ・ブラウザのセットアップ画面などは未実装です（[backend/README.md の「実装状況」](backend/README.md#実装状況)）。
 
 - `frontend/` の画面は **動作検証用の仮 UI** です。正式なデザインは [#10](https://github.com/tacky0612/smash-hub/issues/10) で進めます。機能を追加するときは仮 UI のままで構いませんが、公式の意匠に寄せない・外部リソースを読み込まない方針は守ってください。
 - 技術スタック: フロントエンドは React（SPA）+ TypeScript + Vite、バックエンドは Go、DB は PostgreSQL（[ADR 0005](docs/adr/0005-tech-stack.md)）。
@@ -28,6 +28,7 @@ SmashHub は、大乱闘スマッシュブラザーズ SPECIAL の対戦マッ�
 | E2E テスト（2つのインスタンスを Docker で起動し、連合での対戦の流れを検証） | `make test-e2e` |
 | フロントエンドの型チェックとビルド | `make test-frontend` |
 | 紹介サイト（GitHub Pages）の型チェックとビルド | `make test-site` |
+| 本番用のデプロイ構成の検証（compose・シェルスクリプト・Caddyfile） | `make check-deploy` |
 | ドキュメントのチェック | `python3 .claude/skills/docs-check/scripts/check_docs.py` |
 
 コードを変更したら、関係するテストを実行してから報告してください。Go のコードは `gofmt` を通してください。
@@ -59,6 +60,7 @@ docs/                     設計・ポリシー・ロードマップ（日本語
   adr/                    設計判断の記録
 frontend/                 Web UI（React SPA）
 site/                     SmashHubプロトコルの紹介サイト（React + Tailwind CSS、GitHub Pages）
+deploy/                   本番インスタンスの構成（Docker Compose・Caddy・セットアップスクリプト。→ docs/operations/deployment.md）
 backend/                  クリーンアーキテクチャ + DDD のモジュラーモノリス（Go）
 compose.yaml / Makefile   ローカル環境と起動・テストのコマンド
 ```

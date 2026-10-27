@@ -51,3 +51,14 @@ func (e *ValidationError) Error() string { return e.Message }
 
 // Invalid は ValidationError を返す。
 func Invalid(msg string) error { return &ValidationError{Message: msg} }
+
+// ForbiddenError は理由を利用者に伝える ErrForbidden（利用停止中の操作など）。
+type ForbiddenError struct {
+	Message string
+}
+
+func (e *ForbiddenError) Error() string        { return e.Message }
+func (e *ForbiddenError) Is(target error) bool { return target == ErrForbidden }
+
+// Forbidden は理由付きの ErrForbidden を返す。
+func Forbidden(msg string) error { return &ForbiddenError{Message: msg} }

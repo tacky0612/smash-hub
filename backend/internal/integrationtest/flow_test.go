@@ -279,7 +279,7 @@ func TestDiscordLogin_StoresOnlyIdentifierHash(t *testing.T) {
 	if !me.LoggedIn {
 		t.Fatal("Discord ログインできない")
 	}
-	p.call("POST", "/api/register", map[string]string{"displayName": "discord user", "mainFighter": "fox"}, http.StatusCreated, nil)
+	p.call("POST", "/api/register", map[string]string{"displayName": "discord user", "mainFighter": "fox", "termsVersion": p.termsVersion()}, http.StatusCreated, nil)
 
 	// DB に Discord の利用者 ID・ユーザー名・メールアドレスが残っていないこと
 	var leaked int

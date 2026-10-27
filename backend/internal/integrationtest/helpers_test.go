@@ -66,9 +66,19 @@ func newPlayer(t *testing.T, e *env, name string) *player {
 	var account struct {
 		ID string `json:"id"`
 	}
-	p.call("POST", "/api/register", map[string]string{"displayName": name, "mainFighter": "mario"}, http.StatusCreated, &account)
+	p.call("POST", "/api/register", map[string]string{"displayName": name, "mainFighter": "mario", "termsVersion": p.termsVersion()}, http.StatusCreated, &account)
 	p.ID = account.ID
 	return p
+}
+
+// termsVersion は現在の利用規約の版を返す（登録時に同意する版）。
+func (p *player) termsVersion() string {
+	p.t.Helper()
+	var tos struct {
+		Version string `json:"version"`
+	}
+	p.call("GET", "/api/terms", nil, http.StatusOK, &tos)
+	return tos.Version
 }
 
 type statusRes struct {

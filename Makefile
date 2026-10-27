@@ -1,4 +1,4 @@
-.PHONY: up down logs test test-unit test-integration test-e2e test-frontend test-site db-test-up db-test-down
+.PHONY: up down logs test test-unit test-integration test-e2e test-frontend test-site check-deploy db-test-up db-test-down
 
 TEST_DATABASE_URL ?= postgres://test:test@localhost:55432/smashhub_test?sslmode=disable
 
@@ -44,3 +44,13 @@ test-site:
 ## フロントエンドの型チェックとビルド
 test-frontend:
 	cd frontend && npm ci && npm run build
+
+## 本番用の構成（deploy/）の検証。compose はダミーの値で設定を検証し、スクリプトは構文と shellcheck（入っていれば）を確認する
+DEPLOY_DUMMY_ENV = DOMAIN=example.com DB_PASSWORD=dummy INSTANCE_PRIVATE_KEY=dummy IDENTIFIER_PEPPER=dummy ACCOUNT_KEY_SECRET=dummy
+
+check-deploy:
+	$(DEPLOY_DUMMY_ENV) docker compose -f deploy/compose.yaml --env-file /dev/null config -q
+	bash -n deploy/setup.sh
+	bash -n deploy/smash-hub.sh
+	@if command -v shellcheck >/dev/null 2>&1; then shellcheck deploy/setup.sh deploy/smash-hub.sh; else echo "shellcheck がないため省略しました"; fi
+	docker run --rm -e DOMAIN=example.com -v "$(CURDIR)/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
