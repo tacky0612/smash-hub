@@ -47,8 +47,8 @@ function Header() {
   return (
     <header className="header">
       <Link to="/" className="brand">
-        Smash-hub
-        {instance && instance.name !== "Smash-hub" && <span className="instance-name">{instance.name}</span>}
+        SmashHub
+        {instance && instance.name !== "SmashHub" && <span className="instance-name">{instance.name}</span>}
       </Link>
       <nav className="nav">
         {registered && <NavLink to="/">対戦</NavLink>}

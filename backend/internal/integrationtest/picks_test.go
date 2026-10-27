@@ -47,16 +47,16 @@ func recordedPicks(t *testing.T, p *player, id string) []shared.Pick {
 // 両者のゲームごとのファイターが一致すれば、それを含めた両者署名付きの記録になる。
 func TestReport_AgreedPicksAreRecorded(t *testing.T) {
 	e := newEnv(t)
-	alice, bob := newPlayer(t, e, "alice"), newPlayer(t, e, "bob")
-	id := matchPair(t, alice, bob) // 1戦目は両者 mario
+	taro, hanako := newPlayer(t, e, "taro"), newPlayer(t, e, "hanako")
+	id := matchPair(t, taro, hanako) // 1戦目は両者 mario
 	g := games([2]string{"mario", "mario"}, [2]string{"mario", "fox"}, [2]string{"link", "fox"})
 
-	alice.reportPicks(id, "win", g)
-	m := bob.reportPicks(id, "lose", g)
+	taro.reportPicks(id, "win", g)
+	m := hanako.reportPicks(id, "lose", g)
 	if m.Status != "confirmed" || len(m.RecordedPicks) != 3 {
 		t.Fatalf("一致したファイターで確定する: %+v", m)
 	}
-	if picks := recordedPicks(t, alice, id); len(picks) != 3 || picks[2].Characters[0] != "link" {
+	if picks := recordedPicks(t, taro, id); len(picks) != 3 || picks[2].Characters[0] != "link" {
 		t.Fatalf("記録の picks = %+v", picks)
 	}
 }
@@ -64,27 +64,27 @@ func TestReport_AgreedPicksAreRecorded(t *testing.T) {
 // ファイターの入力が食い違っても、勝敗が一致すれば確定し、1戦目だけを記録する。
 func TestReport_MismatchedPicksFallBackToFirstGame(t *testing.T) {
 	e := newEnv(t)
-	alice, bob := newPlayer(t, e, "alice"), newPlayer(t, e, "bob")
-	id := matchPair(t, alice, bob)
+	taro, hanako := newPlayer(t, e, "taro"), newPlayer(t, e, "hanako")
+	id := matchPair(t, taro, hanako)
 
-	alice.reportPicks(id, "win", games([2]string{"mario", "mario"}, [2]string{"mario", "fox"}))
-	if m := bob.report(id, "lose"); m.Status != "confirmed" || len(m.RecordedPicks) != 1 {
+	taro.reportPicks(id, "win", games([2]string{"mario", "mario"}, [2]string{"mario", "fox"}))
+	if m := hanako.report(id, "lose"); m.Status != "confirmed" || len(m.RecordedPicks) != 1 {
 		t.Fatalf("勝敗が一致すれば確定する: %+v", m)
 	}
-	if picks := recordedPicks(t, alice, id); len(picks) != 1 || picks[0].Characters[0] != "mario" {
+	if picks := recordedPicks(t, taro, id); len(picks) != 1 || picks[0].Characters[0] != "mario" {
 		t.Fatalf("記録の picks = %+v", picks)
 	}
 }
 
 func TestReport_RejectsPicksAgainstRules(t *testing.T) {
 	e := newEnv(t)
-	alice, bob := newPlayer(t, e, "alice"), newPlayer(t, e, "bob")
-	id := matchPair(t, alice, bob)
+	taro, hanako := newPlayer(t, e, "taro"), newPlayer(t, e, "hanako")
+	id := matchPair(t, taro, hanako)
 
 	// 両者が同時にファイターを変えることはできない
 	bad := games([2]string{"mario", "mario"}, [2]string{"fox", "link"})
-	alice.call("POST", "/api/matches/"+id+"/report", map[string]any{"result": "win", "picks": bad}, http.StatusBadRequest, nil)
-	if m := alice.match(id); m.Player1.Reported {
+	taro.call("POST", "/api/matches/"+id+"/report", map[string]any{"result": "win", "picks": bad}, http.StatusBadRequest, nil)
+	if m := taro.match(id); m.Player1.Reported {
 		t.Fatal("拒否した報告が記録された")
 	}
 }
@@ -93,26 +93,26 @@ func TestReport_RejectsPicksAgainstRules(t *testing.T) {
 // 報告する側がどちらでも（勝者・敗者のどちらの視点の報告でも）同じように拒否する。
 func TestReport_RejectsWinnerChangingFighter(t *testing.T) {
 	e := newEnv(t)
-	alice, bob := newPlayer(t, e, "alice"), newPlayer(t, e, "bob")
-	id := matchPair(t, alice, bob)
-	m := alice.match(id)
-	// alice の勝ちで、alice 側のファイターを2戦目に変える
-	aliceSide := 0
+	taro, hanako := newPlayer(t, e, "taro"), newPlayer(t, e, "hanako")
+	id := matchPair(t, taro, hanako)
+	m := taro.match(id)
+	// taro の勝ちで、taro 側のファイターを2戦目に変える
+	taroSide := 0
 	if m.MyRole == "player2" {
-		aliceSide = 1
+		taroSide = 1
 	}
 	second := [2]string{"mario", "mario"}
-	second[aliceSide] = "link"
+	second[taroSide] = "link"
 	bad := games([2]string{"mario", "mario"}, second)
 
-	alice.call("POST", "/api/matches/"+id+"/report", map[string]any{"result": "win", "picks": bad}, http.StatusBadRequest, nil)
-	bob.call("POST", "/api/matches/"+id+"/report", map[string]any{"result": "lose", "picks": bad}, http.StatusBadRequest, nil)
+	taro.call("POST", "/api/matches/"+id+"/report", map[string]any{"result": "win", "picks": bad}, http.StatusBadRequest, nil)
+	hanako.call("POST", "/api/matches/"+id+"/report", map[string]any{"result": "lose", "picks": bad}, http.StatusBadRequest, nil)
 
-	// 敗者（bob）側の変更なら受け付ける
+	// 敗者（hanako）側の変更なら受け付ける
 	ok := [2]string{"mario", "mario"}
-	ok[1-aliceSide] = "fox"
-	alice.reportPicks(id, "win", games([2]string{"mario", "mario"}, ok))
-	if m := bob.reportPicks(id, "lose", games([2]string{"mario", "mario"}, ok)); m.Status != "confirmed" || len(m.RecordedPicks) != 2 {
+	ok[1-taroSide] = "fox"
+	taro.reportPicks(id, "win", games([2]string{"mario", "mario"}, ok))
+	if m := hanako.reportPicks(id, "lose", games([2]string{"mario", "mario"}, ok)); m.Status != "confirmed" || len(m.RecordedPicks) != 2 {
 		t.Fatalf("敗者の変更は受け付けて記録する: %+v", m)
 	}
 }

@@ -2,7 +2,7 @@
 # 起動: make up
 #   Instance1: http://localhost:8080
 #   Instance2: http://localhost:8090
-# 2つのインスタンスは互いを連合先（PEERS）にしており、連合プロトコル（docs/architecture/federation.md）で
+# 2つのインスタンスは互いを連合先（PEERS）にしており、SmashHubプロトコル（docs/architecture/federation.md）で
 # 対戦記録を複製し合い、インスタンスをまたいでマッチングできます。
 #
 # 注意: ここに書いている鍵・ペッパー・暗号化鍵はローカル専用の固定値です。本番では必ずランダムな値を別途設定してください。

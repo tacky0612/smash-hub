@@ -17,26 +17,26 @@ const TOC = [
 
 // インスタンスをまたぐ対戦の流れ（docs/architecture/federation.md の 11.4・11.5）
 const CROSS_PARTICIPANTS: Participant[] = [
-  { id: "alice", lines: ["alice", "インスタンス A の利用者"], tone: "muted" },
+  { id: "太郎", lines: ["太郎", "インスタンス A の利用者"], tone: "muted" },
   { id: "A", lines: ["インスタンス A", "ホスト（先に待った側）"], tone: "primary" },
-  { id: "B", lines: ["インスタンス B", "bob のホーム"], tone: "primary" },
-  { id: "bob", lines: ["bob", "インスタンス B の利用者"], tone: "muted" },
+  { id: "B", lines: ["インスタンス B", "花子のホーム"], tone: "primary" },
+  { id: "花子", lines: ["花子", "インスタンス B の利用者"], tone: "muted" },
 ];
 
 const CROSS_MESSAGES: Message[] = [
   { section: "マッチング" },
-  { from: "alice", to: "A", label: "対戦相手を探す" },
+  { from: "太郎", to: "A", label: "対戦相手を探す" },
   { from: "A", to: "B", label: "募集を配信（30秒で失効）", dashed: true },
-  { from: "bob", to: "B", label: "対戦相手を探す" },
+  { from: "花子", to: "B", label: "対戦相手を探す" },
   { from: "B", to: "A", label: "申し込み（match-claims）" },
   { from: "A", to: "B", label: "成立（match_id）", tone: "success" },
   { section: "対戦" },
   { from: "B", to: "A", label: "状態の取得（部屋 ID）" },
-  { from: "bob", to: "B", label: "部屋 ID を見て入室" },
+  { from: "花子", to: "B", label: "部屋 ID を見て入室" },
   { section: "結果の報告" },
-  { from: "alice", to: "A", label: "勝ち（alice の鍵で署名）" },
-  { from: "bob", to: "B", label: "負け" },
-  { from: "B", to: "A", label: "bob の署名付き報告を中継" },
+  { from: "太郎", to: "A", label: "勝ち（太郎の鍵で署名）" },
+  { from: "花子", to: "B", label: "負け" },
+  { from: "B", to: "A", label: "花子の署名付き報告を中継" },
   { from: "A", to: "A", label: "一致 → 記録をログに追記" },
   { from: "B", to: "A", label: "ログを pull して取り込む", tone: "primary" },
 ];
@@ -49,7 +49,7 @@ export function HowItWorksPage() {
         title="署名とハッシュチェーンで、記録を誰のものでもなくする"
         lead={
           <>
-            連合プロトコルが使う技術は <strong>Ed25519 署名・SHA-256・JSON の正規化・HTTP の pull</strong> だけです。
+            SmashHubプロトコルが使う技術は <strong>Ed25519 署名・SHA-256・JSON の正規化・HTTP の pull</strong> だけです。
             ブロックチェーンや特別なミドルウェアは使いません。このページでは、記録が作られてから各インスタンスで同じレートになるまでを順に説明します。
           </>
         }
@@ -63,12 +63,12 @@ export function HowItWorksPage() {
           <DataTable
             head={["用語", "意味"]}
             rows={[
-              [<strong>インスタンス</strong>, "連合に参加している1つのサイト（サーバー）。Smash-hub のソフトウェアでも、プロトコルを独自に実装した既存のサイトでもかまいません。"],
+              [<strong>インスタンス</strong>, "連合に参加している1つのサイト（サーバー）。SmashHub のソフトウェアでも、プロトコルを独自に実装した既存のサイトでもかまいません。"],
               [<strong>ホームインスタンス</strong>, "利用者がアカウントを作り、ログインしているインスタンス。"],
               [<strong>アカウント ID</strong>, <>利用者ごとの Ed25519 公開鍵から作る識別子（<C>did:key:z6Mk…</C>）。連合の中では、サイトのユーザー ID ではなくこの ID で人を識別します。</>],
               [<strong>イベント</strong>, <>インスタンスが確定させた出来事。アカウントの公開（<C>AccountPublished</C>）と対戦記録（<C>MatchRecorded</C>）があります。</>],
               [<strong>ログ</strong>, "イベントを連番で追記していく、インスタンスごとの記録の帳簿。書き換え・削除はせず、取り消しも新しいイベントの追記で表します。"],
-              [<strong>連合レート</strong>, "連合で共有された対戦記録から、全インスタンスが同じ手順で計算する1つのレート。"],
+              [<strong>SmashHubレート</strong>, "連合で共有された対戦記録から、全インスタンスが同じ手順で計算する1つのレート。"],
             ]}
           />
         </Section>
@@ -147,7 +147,7 @@ export function HowItWorksPage() {
             確定した記録は連合先に複製されます。インスタンスが閉鎖しても、利用者の戦績とレートは他のインスタンスに残り、署名によって本物かどうかを検証できます。
           </p>
           <Resilience />
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-slate-500">
             ログの再配布・スナップショット・アカウント移行は今後実装します（
             <ExtLink href={DOCS.roadmap}>ロードマップ</ExtLink>）。
           </p>
@@ -157,7 +157,7 @@ export function HowItWorksPage() {
           <p>このプロトコルは個人情報を取り扱いません。連合に出るのは、公開鍵から作るアカウント ID・利用者が決めた表示名・確定した対戦記録だけです。</p>
           <ShareBoundary />
           <p>
-            仕様の全体は <ExtLink href={DOCS.federation}>連合プロトコル</ExtLink> にあります。
+            仕様の全体は <ExtLink href={DOCS.federation}>SmashHubプロトコル</ExtLink> にあります。
           </p>
         </Section>
       </Prose>

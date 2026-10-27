@@ -1,12 +1,12 @@
-# site（連合プロトコルの紹介サイト）
+# site（SmashHubプロトコルの紹介サイト）
 
-Smash-hub の連合プロトコルを広めるための静的サイトです。GitHub Pages で公開し、`main` への push で自動的にデプロイします（[.github/workflows/site.yml](../.github/workflows/site.yml)）。
+SmashHubプロトコルを広めるための静的サイトです。GitHub Pages で公開し、`main` への push で自動的にデプロイします（[.github/workflows/site.yml](../.github/workflows/site.yml)）。
 
 | ページ | 内容 | 主な元のドキュメント |
 |---|---|---|
 | トップ（`#/`） | 解決したい課題・全体像・設計原則 | [ビジョン](../docs/vision.md) |
-| 仕組み（`#/how-it-works`） | 署名付きログ・対戦記録・pull 同期・連合レート・インスタンスをまたぐ対戦 | [連合プロトコル](../docs/architecture/federation.md) |
-| 開発者向け（`#/developers`） | API・イベントの形式・検証の手順・実装の例 | [連合プロトコル](../docs/architecture/federation.md)、[既存の対戦サイトのための入門](../docs/architecture/federation-for-existing-sites.md) |
+| 仕組み（`#/how-it-works`） | 署名付きログ・対戦記録・pull 同期・SmashHubレート・インスタンスをまたぐ対戦 | [SmashHubプロトコル](../docs/architecture/federation.md) |
+| 開発者向け（`#/developers`） | API・イベントの形式・検証の手順・実装の例 | [SmashHubプロトコル](../docs/architecture/federation.md)、[既存の対戦サイトのための入門](../docs/architecture/federation-for-existing-sites.md) |
 | 既存サイトへの導入（`#/adoption`） | 得られるもの・共有するもの・3段階の導入・参加の条件・FAQ | [既存の対戦サイトのための入門](../docs/architecture/federation-for-existing-sites.md)、[運用者の約束事](../docs/operations/server-covenant.md) |
 | ポリシー（`#/policy`） | 商標・非営利・個人情報・対戦記録・ライセンス | [運営ポリシー](../docs/policy.md)、[データ保護](../docs/security/data-protection.md) |
 
@@ -50,7 +50,7 @@ src/
 - **絵文字を使わない**: アイコンは lucide-react を `IconBadge` などの部品で揃えて使います。
 - **外部リソースを読み込まない**: フォント・スクリプト・解析タグを外部から読み込みません（システムフォントのみ）。
 - **レスポンシブ**: スマートフォン（幅 390px 前後）と PC の両方で最適な構成にします。横に広い図は、`Responsive` で PC 用とスマートフォン用（縦に並べる構成）を切り替えます。図の内容を変えるときは両方を揃えて直してください。表はスマートフォンでカード表示に切り替わります。
-- **ライト / ダーク**: OS の設定（`prefers-color-scheme`）に従います。色は Tailwind の `dark:` で両方を指定します。
+- **配色**: 白地にグレー（slate）の濃淡、差し色は赤（`red-600`）1色です。図のトーンは、主役（インスタンス・記録）を赤、補助（既存サイト・記録 ID）をチャコール、閉鎖などを灰色で表します（`components/diagrams/kit.tsx`）。緑・青などの色は増やさず、注意の囲みだけアンバーを使います。ダークモードには対応しません（背景は常に白）。
 - **ルーティング**: GitHub Pages はサーバー側でパスを書き換えられないため、`HashRouter`（`/#/how-it-works`）を使います。ビルドは相対パス（`base: "./"`）なので、リポジトリ名やフォークに依存しません。
 
 ## デプロイ

@@ -1,11 +1,11 @@
-# 連合プロトコル
+# SmashHubプロトコル
 
 > ステータス: **Draft**（議論中）。ワイヤーフォーマットと API は最小実装時に確定します。全体の流れを図で知りたい場合は [図解](federation-walkthrough.md) を参照してください。独自プロトコルとすることは [ADR 0006](../adr/0006-custom-federation-protocol.md) で決定済みです。
 
-Smash-hub の連合プロトコルは、個別のサイトやインスタンスがそれぞれ独自の UI を持ちながらも、同じ対戦事実と同じレーティング計算ルールを共有できるようにするための仕様です。Smash-hub のソフトウェアを使うインスタンスだけでなく、このプロトコルを独自に実装した他のサイトも参加できます（既存のサイト向けの入門は [既存の対戦サイトのための連合プロトコル入門](federation-for-existing-sites.md)）。
+SmashHubプロトコルは、個別のサイトやインスタンスがそれぞれ独自の UI を持ちながらも、同じ対戦事実と同じレーティング計算ルールを共有できるようにするための仕様です。SmashHub のソフトウェアを使うインスタンスだけでなく、このプロトコルを独自に実装した他のサイトも参加できます（既存のサイト向けの入門は [既存の対戦サイトのための SmashHubプロトコル入門](federation-for-existing-sites.md)）。
 
 > [!NOTE]
-> 連合には **営利・非営利を問わず参加できます**（[ADR 0007](../adr/0007-federation-open-to-commercial-sites.md)）。ただし参加には [運用者の約束事](../operations/server-covenant.md)（任天堂の利用許可のない素材を使わない・記録を改ざんしない・利用者の個人情報を連合で共有しない 等）への同意が必要です。各運営者の営利活動や、それによる任天堂株式会社その他の権利者の権利の侵害について、本プロトコルおよび Smash-hub プロジェクトは責任を負いません。
+> 連合には **営利・非営利を問わず参加できます**（[ADR 0007](../adr/0007-federation-open-to-commercial-sites.md)）。ただし参加には [運用者の約束事](../operations/server-covenant.md)（任天堂の利用許可のない素材を使わない・記録を改ざんしない・利用者の個人情報を連合で共有しない 等）への同意が必要です。各運営者の営利活動や、それによる任天堂株式会社その他の権利者の権利の侵害について、本プロトコルおよび SmashHub プロジェクトは責任を負いません。
 
 本プロトコルの目的は、各インスタンスが自分の DB だけに依存して「自分のレートが正しい」と主張するのではなく、署名付きの対戦記録を共有し、誰でも同じ手順でレーティングを再計算できるようにすることです。
 
@@ -24,24 +24,24 @@ Smash-hub の連合プロトコルは、個別のサイトやインスタンス�
    - 相手インスタンスが一時的に止まっていても、復帰後に差分を取り直せるようにする。
 
 5. 記録とレートを分断させない
-   - 対戦記録がサイトごとに閉じず、すべての参加インスタンスが同じ記録を共有し、同じ計算式で1つのレート（連合レート）を計算できるようにする。サイトによって強さの水準がずれる（同じレートでも比べられない）ことを防ぐ。
+   - 対戦記録がサイトごとに閉じず、すべての参加インスタンスが同じ記録を共有し、同じ計算式で1つのレート（SmashHubレート）を計算できるようにする。サイトによって強さの水準がずれる（同じレートでも比べられない）ことを防ぐ。
 
 6. 利用者の少ないインスタンスでもマッチングできる
    - 対戦募集をインスタンス間で配り合い、別のインスタンスの利用者とも対戦できるようにする（→ 11.4）。小さなインスタンスでも、連合全体の利用者を相手に対戦相手を探せる。
 
 ## 2. 基本の考え方
 
-Smash-hub の連合は、単純な「サイト同士のデータ同期」ではなく、署名付きの追記専用ログを扱う構造を採用します。
+SmashHub の連合は、単純な「サイト同士のデータ同期」ではなく、署名付きの追記専用ログを扱う構造を採用します。
 
 各インスタンスは自分が受け付けた出来事をイベントとして記録し、連番とハッシュチェーンを持たせます。これにより、途中で削除や改ざんがあった場合に検出できます。
 
 ```text
 インスタンスAのログ
-seq=1  InstancePublished   (Aの公開鍵・名称・連合ポリシー)  prev=∅      sig=A
-seq=2  AccountPublished   (alice のアカウント ID・公開鍵・表示名) prev=h(1)   sig=A
-seq=3  MatchRecorded      (alice vs bob, 両者署名付き)       prev=h(2)   sig=A
-seq=4  MatchRecorded      (...)                              prev=h(3)   sig=A
-seq=5  MatchVoided        (無効化イベント)                   prev=h(4)   sig=A
+seq=1  InstancePublished   (Aの公開鍵・名称・連合ポリシー)        prev=∅      sig=A
+seq=2  AccountPublished   (太郎のアカウント ID・公開鍵・表示名)   prev=h(1)   sig=A
+seq=3  MatchRecorded      (太郎 vs 花子, 両者署名付き)            prev=h(2)   sig=A
+seq=4  MatchRecorded      (...)                                   prev=h(3)   sig=A
+seq=5  MatchVoided        (無効化イベント)                        prev=h(4)   sig=A
 ```
 
 - seq: インスタンスごとの連番
@@ -56,7 +56,7 @@ seq=5  MatchVoided        (無効化イベント)                   prev=h(4)   
 - SNS の投稿や通知の標準化
 - フロントエンド UI の標準化
 - プロフィールやメッセージの共有を前提としたソーシャルグラフ
-- サイトごとの収益モデルや課金の扱い（プロトコルは関与しない。Smash-hub プロジェクト自身は非営利）
+- サイトごとの収益モデルや課金の扱い（プロトコルは関与しない。SmashHub プロジェクト自身は非営利）
 - 一人の運営者が全てのデータを管理する中央集権モデル
 - 個人情報の共有・管理（本プロトコルは個人情報を扱わない → 4.4）
 
@@ -136,7 +136,7 @@ seq=5  MatchVoided        (無効化イベント)                   prev=h(4)   
 - **アカウントは公開鍵と表示名だけで表す** — アカウントは、公開鍵から導出したアカウント ID と、利用者が自分で決めた表示名だけで表します（→ 4.1）。アカウント ID から、外部プロバイダーのアカウントや実在の人物はたどれません（→ 13）。
 - **実装は個人情報を連合に出さない** — 実装は、上の情報を、仕様にない項目として追加することも含めて、イベントやインスタンス間のリクエストに含めてはいけません。
 - **表示名には注意を表示する** — 表示名は利用者が自由に入力するため、利用者が自分で個人情報を書き込む可能性があります。各サイトは入力画面で注意を表示し、連絡先などを書かないよう案内します（[データ保護](../security/data-protection.md)）。
-- **サイトの中の情報はプロトコルの範囲外** — 各サイトがサイトの中で保持する情報（ログインのための情報など）はプロトコルの範囲外で、各運営者が責任を持って管理します（[運用者の約束事](../operations/server-covenant.md) の「3. 利用者の保護」）。Smash-hub のソフトウェアを使うインスタンスは、サイトの中でも個人情報を保持しません（[データ保護](../security/data-protection.md)）。
+- **サイトの中の情報はプロトコルの範囲外** — 各サイトがサイトの中で保持する情報（ログインのための情報など）はプロトコルの範囲外で、各運営者が責任を持って管理します（[運用者の約束事](../operations/server-covenant.md) の「3. 利用者の保護」）。SmashHub のソフトウェアを使うインスタンスは、サイトの中でも個人情報を保持しません（[データ保護](../security/data-protection.md)）。
 
 ## 5. イベントモデル
 
@@ -298,7 +298,7 @@ sequenceDiagram
 - レーティング計算に使う記録の範囲を制御できる
 - 運営者が自分の信頼境界を定義できる
 
-なお、拒否したインスタンスの記録は取り込まないため、連合ポリシーがインスタンスごとに大きく違うと、インスタンスによって見えるレートがずれます。レートは連合全体で1つ（連合レート）であることを目指すため、参加インスタンスは [運用者の約束事](../operations/server-covenant.md) に基づく共通の拒否リストを使うことを推奨します（→ [レーティング](../domain/rating.md) の「6. 連合レート」）。
+なお、拒否したインスタンスの記録は取り込まないため、連合ポリシーがインスタンスごとに大きく違うと、インスタンスによって見えるレートがずれます。レートは連合全体で1つ（SmashHubレート）であることを目指すため、参加インスタンスは [運用者の約束事](../operations/server-covenant.md) に基づく共通の拒否リストを使うことを推奨します（→ [レーティング](../domain/rating.md) の「6. SmashHubレート」）。
 
 ## 10. レーティングとの関係
 
@@ -370,10 +370,10 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-  actor A as alice（Instance1）
+  actor A as 太郎（Instance1）
   participant I1 as Instance1（ホスト）
   participant I2 as Instance2
-  actor B as bob（Instance2）
+  actor B as 花子（Instance2）
   A->>I1: 対戦相手を探す（待機）
   I1->>I2: POST /federation/match-requests（募集を配信。待機中は配信し直して有効期限を延ばす）
   B->>I2: 対戦相手を探す
@@ -383,9 +383,9 @@ sequenceDiagram
   I1->>I2: DELETE /federation/match-requests/{id}（配信の取り消し）
   B->>I2: 対戦ルームを開く
   I2->>I1: GET /federation/matches/{id}（部屋 ID 等を取得）
-  A->>I1: 結果を報告（alice の鍵で署名）
+  A->>I1: 結果を報告（太郎の鍵で署名）
   B->>I2: 結果を報告
-  I2->>I1: POST /federation/match-reports（bob の鍵で署名した報告を中継）
+  I2->>I1: POST /federation/match-reports（花子の鍵で署名した報告を中継）
   I1->>I1: 報告が一致 → MatchRecorded をログに追記
   I2->>I1: GET /federation/log（pull で取り込み、同じレートを計算）
 ```
@@ -412,8 +412,8 @@ sequenceDiagram
 
 ```json
 {
-  "account_id": "did:key:z6MkAlice...",
-  "display_name": "alice",
+  "account_id": "did:key:z6MkTaro...",
+  "display_name": "太郎",
   "home_instance": "https://a.example",
   "account_sig": "base64_account_sig"
 }
@@ -436,8 +436,8 @@ sequenceDiagram
     "played_at": "2026-10-26T10:30:00Z",
     "ruleset": "standard-1on1@1",
     "players": [
-      { "account_id": "did:key:z6MkAlice..." },
-      { "account_id": "did:key:z6MkBob..." }
+      { "account_id": "did:key:z6MkTaro..." },
+      { "account_id": "did:key:z6MkHanako..." }
     ],
     "picks": [
       { "game": 1, "characters": ["mario", "fox"] },
@@ -446,8 +446,8 @@ sequenceDiagram
     "winner": 0,
     "host_instance": "https://a.example",
     "signatures": [
-      { "account_id": "did:key:z6MkAlice...", "sig": "base64_sig_alice" },
-      { "account_id": "did:key:z6MkBob...", "sig": "base64_sig_bob" }
+      { "account_id": "did:key:z6MkTaro...", "sig": "base64_sig_太郎" },
+      { "account_id": "did:key:z6MkHanako...", "sig": "base64_sig_花子" }
     ]
   },
   "sig": "base64_instance_sig"
@@ -493,7 +493,7 @@ sequenceDiagram
 
 ## 16. 未解決の論点
 
-- [ ] 共通の拒否リストの運用方法（誰が管理し、どう配布するか。インスタンスごとに拒否リストが違うと連合レートがずれるため）
+- [ ] 共通の拒否リストの運用方法（誰が管理し、どう配布するか。インスタンスごとに拒否リストが違うと SmashHubレートがずれるため）
 - [ ] イベントのシリアライズ形式を厳密に定義する
 - [ ] 署名アルゴリズムの最終決定（Ed25519 を第一候補）
 - [ ] 連合ポリシーのデータ形式を定義する
@@ -502,7 +502,7 @@ sequenceDiagram
 
 ## 17. 結論
 
-Smash-hub の連合プロトコルは、各インスタンスが自分の DB に閉じた「独自レート」を持つのではなく、共通の事実と検証可能な記録を共有し、同じ計算手順でレーティングを再計算できる基盤として設計します。
+SmashHubプロトコルは、各インスタンスが自分の DB に閉じた「独自レート」を持つのではなく、共通の事実と検証可能な記録を共有し、同じ計算手順でレーティングを再計算できる基盤として設計します。
 
 これにより、各サイトは次のような役割を分けられます。
 

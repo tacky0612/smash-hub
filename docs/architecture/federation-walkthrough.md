@@ -1,15 +1,15 @@
 # 図解: 複数のインスタンスが勝敗記録とレートを共有する仕組み
 
-> ステータス: **Draft**。現在の実装（Instance1・Instance2 の2台構成で動作確認済み）に基づく説明資料です。仕様の正は [連合プロトコル](federation.md) です。
+> ステータス: **Draft**。現在の実装（Instance1・Instance2 の2台構成で動作確認済み）に基づく説明資料です。仕様の正は [SmashHubプロトコル](federation.md) です。
 
-Smash-hub では、独立した運営者が立てた複数のインスタンス（サーバー）が、**署名付きの勝敗記録をお互いに複製し合い**、それぞれが **同じ計算式でレートを計算し直す** ことで、どのインスタンスでも同じ戦績・同じレートを表示します。中央のサーバーはありません。
+SmashHub では、独立した運営者が立てた複数のインスタンス（サーバー）が、**署名付きの勝敗記録をお互いに複製し合い**、それぞれが **同じ計算式でレートを計算し直す** ことで、どのインスタンスでも同じ戦績・同じレートを表示します。中央のサーバーはありません。
 
 この仕組みで解決したいのは、次の3つです（→ [ビジョン](../vision.md)）。
 
 | 課題 | この仕組みでの解決 |
 |---|---|
 | 1つのサイトが閉鎖すると、サービスも記録も消える | 記録を全インスタンスに複製する（→ 3・6） |
-| サイトが乱立すると記録とレートがサイトごとに分かれ、サイトによって強さの水準がずれる | 全インスタンスが同じ記録から同じ計算式で **1つのレート（連合レート）** を計算する（→ 4） |
+| サイトが乱立すると記録とレートがサイトごとに分かれ、サイトによって強さの水準がずれる | 全インスタンスが同じ記録から同じ計算式で **1つのレート（SmashHubレート）** を計算する（→ 4） |
 | 利用者の少ないサイトでは、募集しても対戦相手が見つからない | 対戦募集をインスタンス間で配り合い、**別のインスタンスの利用者ともマッチングする**（→ 5） |
 
 この資料では、その仕組みを次の順に図で説明します。
@@ -39,10 +39,10 @@ flowchart LR
     W2 --> B2["Backend"]
     B2 --> D2[("DB<br/>ローカルデータ<br/>＋ 共有データの複製")]
   end
-  B1 <-- "連合プロトコル（HTTPS）<br/>署名付きログの pull<br/>募集の配信・対戦の申し込み・報告の中継" --> B2
+  B1 <-- "SmashHubプロトコル（HTTPS）<br/>署名付きログの pull<br/>募集の配信・対戦の申し込み・報告の中継" --> B2
 ```
 
-各インスタンスは自分の利用者だけを受け付け、自分の DB を持ちます。インスタンス同士は **連合プロトコル** で通信します。
+各インスタンスは自分の利用者だけを受け付け、自分の DB を持ちます。インスタンス同士は **SmashHubプロトコル** で通信します。
 
 | データ | 例 | 共有するか |
 |---|---|---|
@@ -62,21 +62,21 @@ flowchart LR
 ```mermaid
 sequenceDiagram
   autonumber
-  actor A as alice
-  actor B as bob
+  actor A as 太郎
+  actor B as 花子
   participant H as ホストのインスタンス
   participant L as ホストのログ（追記専用）
 
   A->>H: 結果を報告「勝ち」
-  Note over H: alice の鍵で「勝者 = alice」の<br/>対戦結果の内容に署名
+  Note over H: 太郎の鍵で「勝者 = 太郎」の<br/>対戦結果の内容に署名
   B->>H: 結果を報告「負け」
-  Note over H: bob の鍵で「勝者 = alice」の<br/>対戦結果の内容に署名
+  Note over H: 花子の鍵で「勝者 = 太郎」の<br/>対戦結果の内容に署名
   H->>H: 2人の報告が一致 → 確定
   H->>L: MatchRecorded を追記<br/>（2人の署名 ＋ インスタンスの署名）
   H->>H: レートを計算し直す
 ```
 
-- 「alice の勝ち」と「bob の負け」は **同じ内容（勝者 = alice）への署名** になります。報告が一致したときだけ、2人分の署名がそろいます。
+- 「太郎の勝ち」と「花子の負け」は **同じ内容（勝者 = 太郎）への署名** になります。報告が一致したときだけ、2人分の署名がそろいます。
 - 報告が食い違ったまま 24時間たった対戦や、2人とも「中止」と報告した対戦は、記録を作りません（レートも変わりません）。
 - アカウントの ID は、そのアカウントの公開鍵から作った `did:key` です。**ID さえあれば誰でも署名を確かめられます。**
 
@@ -86,10 +86,10 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-  E1["seq 1<br/>AccountPublished<br/>alice の公開情報<br/>prev: なし"]
-  E2["seq 2<br/>AccountPublished<br/>carol の公開情報<br/>prev: hash(seq 1)"]
-  E3["seq 3<br/>MatchRecorded<br/>alice vs bob<br/>prev: hash(seq 2)"]
-  E4["seq 4<br/>MatchRecorded<br/>carol vs dave<br/>prev: hash(seq 3)"]
+  E1["seq 1<br/>AccountPublished<br/>太郎の公開情報<br/>prev: なし"]
+  E2["seq 2<br/>AccountPublished<br/>次郎の公開情報<br/>prev: hash(seq 1)"]
+  E3["seq 3<br/>MatchRecorded<br/>太郎 vs 花子<br/>prev: hash(seq 2)"]
+  E4["seq 4<br/>MatchRecorded<br/>次郎 vs 幸子<br/>prev: hash(seq 3)"]
   E1 --> E2 --> E3 --> E4
 ```
 
@@ -164,9 +164,9 @@ flowchart TD
 flowchart LR
   subgraph IN["手元の勝敗記録（自分で確定させたもの ＋ 取り込んだもの）"]
     direction TB
-    M1["alice vs bob<br/>played_at 20:00<br/>（Instance1 で確定）"]
-    M2["carol vs dave<br/>played_at 20:05<br/>（Instance2 で確定）"]
-    M3["alice vs dave<br/>played_at 20:10<br/>（Instance1 で確定）"]
+    M1["太郎 vs 花子<br/>played_at 20:00<br/>（Instance1 で確定）"]
+    M2["次郎 vs 幸子<br/>played_at 20:05<br/>（Instance2 で確定）"]
+    M3["太郎 vs 幸子<br/>played_at 20:10<br/>（Instance1 で確定）"]
   end
   IN --> F["フィルタ<br/>今のシーズンの記録だけ<br/>取り込みの締め切り（7日）を過ぎた記録は除く"]
   F --> S["並べ替え<br/>played_at（対戦開始日時）の順<br/>同じ時刻なら記録 ID の順"]
@@ -187,15 +187,15 @@ flowchart LR
 
 ## 5. インスタンスをまたぐ対戦
 
-Instance1 の alice と Instance2 の bob が対戦する流れです。**先に待っていた側のインスタンスがホスト** になり、対戦の進行と記録の確定を担当します。
+Instance1 の太郎と Instance2 の花子が対戦する流れです。**先に待っていた側のインスタンスがホスト** になり、対戦の進行と記録の確定を担当します。
 
 ```mermaid
 sequenceDiagram
   autonumber
-  actor A as alice（Instance1 の利用者）
+  actor A as 太郎（Instance1 の利用者）
   participant I1 as Instance1（ホスト）
   participant I2 as Instance2
-  actor B as bob（Instance2 の利用者）
+  actor B as 花子（Instance2 の利用者）
 
   rect rgba(215, 38, 61, 0.08)
   Note over A,B: マッチング
@@ -204,9 +204,9 @@ sequenceDiagram
   I1->>I2: 募集を配信（POST /federation/match-requests）
   Note over I1,I2: 待機中は配信し直して有効期限（30秒）を延ばす
   B->>I2: 対戦相手を探す
-  I2->>I2: 自分の利用者に相手がいない<br/>配信された alice の募集が条件に合う
+  I2->>I2: 自分の利用者に相手がいない<br/>配信された太郎の募集が条件に合う
   I2->>I1: 申し込み（POST /federation/match-claims）
-  I1->>I1: 募集をロックして先着1件だけ承認<br/>対戦を作る（プレイヤー1 = alice）
+  I1->>I1: 募集をロックして先着1件だけ承認<br/>対戦を作る（プレイヤー1 = 太郎）
   I1-->>I2: 対戦 ID
   I1->>I2: 配信の取り消し
   end
@@ -223,11 +223,11 @@ sequenceDiagram
 
   rect rgba(31, 122, 58, 0.08)
   Note over A,B: 結果報告と確定
-  A->>I1: 「勝ち」（alice の鍵で署名）
+  A->>I1: 「勝ち」（太郎の鍵で署名）
   B->>I2: 「負け」
-  I2->>I2: bob の鍵で署名
+  I2->>I2: 花子の鍵で署名
   I2->>I1: 報告を中継（POST /federation/match-reports）
-  I1->>I1: bob の署名を検証 → 報告が一致して確定<br/>MatchRecorded をログに追記
+  I1->>I1: 花子の署名を検証 → 報告が一致して確定<br/>MatchRecorded をログに追記
   end
 
   rect rgba(180, 83, 9, 0.08)
@@ -235,16 +235,16 @@ sequenceDiagram
   I2->>I1: ログを取り込む（GET /federation/log）
   I1-->>I2: MatchRecorded（2人の署名付き）
   I2->>I2: 検証して取り込み、レートを計算し直す
-  Note over I1,I2: 両方のインスタンスで alice 1516 / bob 1484
+  Note over I1,I2: 両方のインスタンスで太郎 1516 / 花子 1484
   end
 ```
 
 | 役割 | ホスト（Instance1） | 相手側のホーム（Instance2） |
 |---|---|---|
 | 対戦の状態（部屋 ID・報告） | 持つ（正） | 持たない。必要なときにホストから取得する |
-| bob の署名鍵 | 持たない | 持つ（bob の報告に署名する） |
+| 花子の署名鍵 | 持たない | 持つ（花子の報告に署名する） |
 | 記録の確定・ログへの追記 | する | しない（ホストのログから取り込む） |
-| 報告の受け付け | bob の分は、bob のホームからの中継だけを受け付ける | bob の報告をホストへ中継する |
+| 報告の受け付け | 花子の分は、花子のホームからの中継だけを受け付ける | 花子の報告をホストへ中継する |
 
 - インスタンス間のリクエストには **インスタンスの署名** を付け、相手を許可リスト（`PEERS`）で限定しています。
 - 対戦記録を作れるのはホストだけです。他のインスタンスから記録そのものを送り込む API はありません。

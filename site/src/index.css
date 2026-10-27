@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
-/* 外部のフォント・CDN は読み込まない（システムフォントのみ）。公式の意匠に寄せない配色にする */
+/* 外部のフォント・CDN は読み込まない（システムフォントのみ）。
+   配色は白地にグレー（slate）の濃淡、差し色は赤（red-600）。公式の意匠には寄せない */
 @theme {
   --font-sans: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -9,12 +10,16 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    color-scheme: light;
   }
   body {
-    @apply bg-white text-slate-800 antialiased dark:bg-slate-950 dark:text-slate-200;
+    @apply bg-white text-slate-800 antialiased;
+  }
+  ::selection {
+    @apply bg-red-100 text-red-950;
   }
   /* 本文中のリンク */
   .prose-link {
-    @apply font-medium text-indigo-600 underline decoration-indigo-300 underline-offset-2 hover:decoration-indigo-600 dark:text-indigo-400 dark:decoration-indigo-700;
+    @apply font-medium text-red-600 underline decoration-red-300 underline-offset-2 hover:text-red-700 hover:decoration-red-600;
   }
 }

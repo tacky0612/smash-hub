@@ -17,7 +17,7 @@ const TOC = [
 const FAQ = [
   {
     q: "今のサイトのレートはどうなりますか？",
-    a: "連合レートとは別に、サイト独自のレートとして残せます。取り違えないよう別の名前で表示してください。連合レートは新しいシーズンから全員 1500 で始まり、過去の対戦や他のサービスのレートは引き継ぎません。",
+    a: "SmashHubレートとは別に、サイト独自のレートとして残せます。取り違えないよう別の名前で表示してください。SmashHubレートは新しいシーズンから全員 1500 で始まり、過去の対戦や他のサービスのレートは引き継ぎません。",
   },
   {
     q: "利用者のメールアドレスやパスワードを渡す必要がありますか？",
@@ -36,8 +36,8 @@ const FAQ = [
     a: "対戦記録には両プレイヤーの署名が必要なので、他のサイトの利用者を勝手に巻き込んだ記録は作れません。自サイトの架空のアカウントで記録を作る不正は、各インスタンスが拒否リストで連合から外します。",
   },
   {
-    q: "Smash-hub のソフトウェアに乗り換える必要がありますか？",
-    a: "ありません。プロトコルを自分のサイトに実装すれば参加できます。一から作る場合は、Smash-hub のインスタンスを立てて運営することもできます。",
+    q: "SmashHub のソフトウェアに乗り換える必要がありますか？",
+    a: "ありません。プロトコルを自分のサイトに実装すれば参加できます。一から作る場合は、SmashHub のインスタンスを立てて運営することもできます。",
   },
 ];
 
@@ -86,7 +86,7 @@ export function AdoptionPage() {
               <strong>サイト独自の機能</strong> — 大会・コミュニティ・配信連携など、連合に関係しない機能はそのまま使えます。
             </li>
             <li>
-              <strong>サイト独自のレート</strong> — 併用できます。連合レートと取り違えないよう、別の名前で表示してください。
+              <strong>サイト独自のレート</strong> — 併用できます。SmashHubレートと取り違えないよう、別の名前で表示してください。
             </li>
           </ul>
         </Section>
@@ -114,8 +114,8 @@ export function AdoptionPage() {
               ["1", <>表示名の登録・変更で <C>AccountPublished</C>、対戦の確定で両者の署名付きの <C>MatchRecorded</C> をログに追記する。</>, <ExtLink href={DOCS.forExistingSites}>入門 5.2</ExtLink>],
               ["1", <><C>GET /federation/instance</C> と <C>GET /federation/log</C> を公開する。イベントは追記したバイト列のまま返す。</>, <ExtLink href={DOCS.forExistingSites}>入門 5.3</ExtLink>],
               ["2", "連合先ごとに最後に取り込んだ seq とハッシュを持ち、定期的に pull して検証・取り込む。", <ExtLink href={DOCS.forExistingSites}>入門 5.4</ExtLink>],
-              ["2", "取り込んだ記録と自サイトの記録を合わせて、決定的な手順で連合レートを計算する。", <ExtLink href={DOCS.rating}>レーティング</ExtLink>],
-              ["3", "インスタンス間リクエストに署名し、募集の配信・申し込み・状態の取得・報告の中継を実装する。", <ExtLink href={DOCS.federation}>連合プロトコル 11</ExtLink>],
+              ["2", "取り込んだ記録と自サイトの記録を合わせて、決定的な手順で SmashHubレートを計算する。", <ExtLink href={DOCS.rating}>レーティング</ExtLink>],
+              ["3", "インスタンス間リクエストに署名し、募集の配信・申し込み・状態の取得・報告の中継を実装する。", <ExtLink href={DOCS.federation}>SmashHubプロトコル 11</ExtLink>],
             ]}
           />
           <Callout kind="important" title="利用者の同意を得てください">
@@ -145,14 +145,14 @@ export function AdoptionPage() {
         </Section>
 
         <Section id="faq" title="7. よくある質問">
-          <div className="divide-y divide-slate-200 rounded-xl border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+          <div className="divide-y divide-slate-200 rounded-xl border border-slate-200">
             {FAQ.map((f) => (
               <details key={f.q} className="group p-4">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-slate-900 dark:text-white">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-slate-900">
                   {f.q}
                   <Plus aria-hidden className="h-5 w-5 shrink-0 text-slate-400 transition-transform group-open:rotate-45" />
                 </summary>
-                <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{f.a}</p>
+                <p className="mt-3 text-sm leading-relaxed text-slate-600">{f.a}</p>
               </details>
             ))}
           </div>

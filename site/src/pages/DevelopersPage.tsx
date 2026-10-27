@@ -29,16 +29,16 @@ const EVENT_EXAMPLE = `
     "played_at": "2026-10-26T10:10:00.000Z",
     "ruleset": "standard-1on1@1",
     "players": [
-      { "account_id": "did:key:z6MkAlice…" },
-      { "account_id": "did:key:z6MkBob…" }
+      { "account_id": "did:key:z6MkTaro…" },
+      { "account_id": "did:key:z6MkHanako…" }
     ],
     "picks": [
       { "game": 1, "characters": ["mario", "fox"] }
     ],
     "winner": 0,
     "signatures": [
-      { "account_id": "did:key:z6MkAlice…", "sig": "base64…" },
-      { "account_id": "did:key:z6MkBob…", "sig": "base64…" }
+      { "account_id": "did:key:z6MkTaro…", "sig": "base64…" },
+      { "account_id": "did:key:z6MkHanako…", "sig": "base64…" }
     ]
   },
   "sig": "base64…（インスタンスの署名）"
@@ -248,7 +248,7 @@ make down`}
           </CardGrid>
           <Callout kind="note" title="現在の状況">
             <p>
-              実装済み: アカウントと対戦記録のログ・pull 同期と検証・連合レート・インスタンスをまたぐ対戦。未実装: ログの再配布・スナップショット・記録の無効化・鍵の更新・アカウント移行。ワイヤーフォーマットは変わる可能性があります（
+              実装済み: アカウントと対戦記録のログ・pull 同期と検証・SmashHubレート・インスタンスをまたぐ対戦。未実装: ログの再配布・スナップショット・記録の無効化・鍵の更新・アカウント移行。ワイヤーフォーマットは変わる可能性があります（
               <ExtLink href={DOCS.roadmap}>ロードマップ</ExtLink>）。
             </p>
           </Callout>

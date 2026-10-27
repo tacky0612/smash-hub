@@ -27,7 +27,7 @@ test-unit:
 test-integration: db-test-up
 	cd backend && TEST_DATABASE_URL="$(TEST_DATABASE_URL)" go test -tags=integration -count=1 ./internal/integrationtest/...
 
-## 2つのインスタンスを Docker で起動し、連合プロトコルでの対戦の流れを検証する（E2E テスト）
+## 2つのインスタンスを Docker で起動し、SmashHubプロトコルでの対戦の流れを検証する（E2E テスト）
 test-e2e: up
 	cd backend && INSTANCE1_URL="$(INSTANCE1_URL)" INSTANCE2_URL="$(INSTANCE2_URL)" go test -tags=e2e -count=1 ./e2e/...
 

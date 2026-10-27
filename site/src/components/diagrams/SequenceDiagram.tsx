@@ -52,7 +52,7 @@ function SequenceSvg({ title, caption, participants, messages }: Props) {
             y1={lifelineTop}
             x2={cx(p.id)}
             y2={lifelineBottom}
-            className="stroke-slate-300 dark:stroke-slate-700"
+            className="stroke-slate-300"
             strokeWidth={1.5}
             strokeDasharray="4 4"
           />
@@ -64,7 +64,7 @@ function SequenceSvg({ title, caption, participants, messages }: Props) {
         if ("section" in m) {
           return (
             <g key={i}>
-              <line x1={PAD} y1={y} x2={width - PAD} y2={y} className="stroke-slate-200 dark:stroke-slate-800" strokeWidth={8} />
+              <line x1={PAD} y1={y} x2={width - PAD} y2={y} className="stroke-slate-200" strokeWidth={8} />
               <Label x={PAD + 8} y={y} text={m.section} anchor="start" />
             </g>
           );
@@ -76,7 +76,7 @@ function SequenceSvg({ title, caption, participants, messages }: Props) {
             <g key={i}>
               <path
                 d={`M${x},${y - 12} h36 v24 h-34`}
-                className="fill-none stroke-slate-500 dark:stroke-slate-400"
+                className="fill-none stroke-slate-500"
                 strokeWidth={1.8}
               />
               <Label x={x + 44} y={y} text={m.label} anchor="start" />
@@ -101,12 +101,12 @@ function SequenceSvg({ title, caption, participants, messages }: Props) {
 }
 
 const CHIP_TONES: Record<Tone, string> = {
-  primary: "bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200",
-  neutral: "bg-white text-slate-700 ring-1 ring-slate-300 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-600",
-  accent: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200",
-  success: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
-  danger: "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200",
-  muted: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+  primary: "bg-red-100 text-red-800",
+  neutral: "bg-white text-slate-700 ring-1 ring-slate-300",
+  accent: "bg-slate-800 text-white",
+  success: "bg-white text-red-700 ring-1 ring-red-300",
+  danger: "bg-slate-200 text-slate-600",
+  muted: "bg-slate-100 text-slate-600",
 };
 
 /** スマートフォン用: 誰から誰へ何を送るかを、上から順に並べる。 */
@@ -120,9 +120,9 @@ function SequenceTimeline({ title, caption, participants, messages }: Props) {
   let step = 0;
   return (
     <figure className="my-8" aria-label={title}>
-      <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-800 dark:bg-slate-900/60">
-        <p className="text-sm font-semibold text-slate-900 dark:text-white">{title}</p>
-        <ul className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
+      <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+        <p className="text-sm font-semibold text-slate-900">{title}</p>
+        <ul className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
           {participants.map((p) => (
             <li key={p.id} className="flex items-center gap-1">
               {chip(p.id)}
@@ -130,11 +130,11 @@ function SequenceTimeline({ title, caption, participants, messages }: Props) {
             </li>
           ))}
         </ul>
-        <ol className="mt-4 border-l-2 border-slate-200 dark:border-slate-700">
+        <ol className="mt-4 border-l-2 border-slate-200">
           {messages.map((m, i) => {
             if ("section" in m) {
               return (
-                <li key={i} className="-ml-px mt-4 border-l-2 border-indigo-400 py-1 pl-3 text-xs font-bold tracking-wide text-indigo-700 first:mt-0 dark:text-indigo-300">
+                <li key={i} className="-ml-px mt-4 border-l-2 border-red-400 py-1 pl-3 text-xs font-bold tracking-wide text-red-700 first:mt-0">
                   {m.section}
                 </li>
               );
@@ -142,7 +142,7 @@ function SequenceTimeline({ title, caption, participants, messages }: Props) {
             step += 1;
             return (
               <li key={i} className="relative py-2 pl-5">
-                <span className="absolute -left-[9px] top-3 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] font-bold text-slate-500 ring-2 ring-slate-300 dark:bg-slate-900 dark:text-slate-400 dark:ring-slate-600">
+                <span className="absolute -left-[9px] top-3 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] font-bold text-slate-500 ring-2 ring-slate-300">
                   {step}
                 </span>
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -156,13 +156,13 @@ function SequenceTimeline({ title, caption, participants, messages }: Props) {
                     </>
                   )}
                 </div>
-                <p className={`mt-1 text-sm ${m.dashed ? "text-slate-500 dark:text-slate-400" : "text-slate-800 dark:text-slate-100"}`}>{m.label}</p>
+                <p className={`mt-1 text-sm ${m.dashed ? "text-slate-500" : "text-slate-800"}`}>{m.label}</p>
               </li>
             );
           })}
         </ol>
       </div>
-      {caption && <figcaption className="mt-2 text-center text-sm text-slate-500 dark:text-slate-400">{caption}</figcaption>}
+      {caption && <figcaption className="mt-2 text-center text-sm text-slate-500">{caption}</figcaption>}
     </figure>
   );
 }

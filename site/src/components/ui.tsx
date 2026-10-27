@@ -7,11 +7,14 @@ import { IconBadge } from "./IconBadge";
 /** ページ冒頭の見出し。 */
 export function PageHeader({ eyebrow, title, lead }: { eyebrow: string; title: string; lead: ReactNode }) {
   return (
-    <div className="border-b border-slate-200 bg-gradient-to-b from-indigo-50 to-white dark:border-slate-800 dark:from-indigo-950/40 dark:to-slate-950">
+    <div className="border-b border-slate-200 bg-white">
       <div className="mx-auto max-w-4xl px-4 py-14 sm:px-6">
-        <p className="text-sm font-semibold tracking-wide text-indigo-600 dark:text-indigo-400">{eyebrow}</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-white">{title}</h1>
-        <div className="mt-4 text-lg leading-relaxed text-slate-600 dark:text-slate-300">{lead}</div>
+        <p className="flex items-center gap-3 text-sm font-semibold tracking-wide text-red-600">
+          <span aria-hidden className="h-1 w-8 rounded-full bg-red-600" />
+          {eyebrow}
+        </p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">{title}</h1>
+        <div className="mt-4 text-lg leading-relaxed text-slate-600">{lead}</div>
       </div>
     </div>
   );
@@ -21,35 +24,35 @@ export function PageHeader({ eyebrow, title, lead }: { eyebrow: string; title: s
 export function Section({ id, title, children }: { id?: string; title: string; children: ReactNode }) {
   return (
     <section id={id} className="scroll-mt-24 py-10">
-      <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{title}</h2>
-      <div className="mt-4 space-y-4 leading-relaxed text-slate-700 dark:text-slate-300">{children}</div>
+      <h2 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h2>
+      <div className="mt-4 space-y-4 leading-relaxed text-slate-700">{children}</div>
     </section>
   );
 }
 
 /** 本文の幅のコンテナ。 */
 export function Prose({ children }: { children: ReactNode }) {
-  return <div className="mx-auto max-w-4xl divide-y divide-slate-200 px-4 sm:px-6 dark:divide-slate-800">{children}</div>;
+  return <div className="mx-auto max-w-4xl divide-y divide-slate-200 px-4 sm:px-6">{children}</div>;
 }
 
 export function H3({ children }: { children: ReactNode }) {
-  return <h3 className="pt-4 text-lg font-semibold text-slate-900 dark:text-white">{children}</h3>;
+  return <h3 className="pt-4 text-lg font-semibold text-slate-900">{children}</h3>;
 }
 
 /** カード（特徴・課題などを並べる）。 */
 export function Card({ title, children, icon, tone = "neutral" }: { title: string; children: ReactNode; icon?: LucideIcon; tone?: "neutral" | "primary" | "accent" }) {
   const tones = {
-    neutral: "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900",
-    primary: "border-indigo-200 bg-indigo-50/60 dark:border-indigo-900 dark:bg-indigo-950/40",
-    accent: "border-amber-200 bg-amber-50/60 dark:border-amber-900 dark:bg-amber-950/30",
+    neutral: "border-slate-200 bg-white",
+    primary: "border-red-200 bg-red-50/60",
+    accent: "border-slate-300 bg-slate-50",
   };
   return (
     <div className={`rounded-xl border p-5 shadow-sm ${tones[tone]}`}>
       <div className="flex items-center gap-3">
         {icon && <IconBadge icon={icon} tone={tone === "accent" ? "accent" : "primary"} />}
-        <h3 className="font-semibold text-slate-900 dark:text-white">{title}</h3>
+        <h3 className="font-semibold text-slate-900">{title}</h3>
       </div>
-      <div className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{children}</div>
+      <div className="mt-2 text-sm leading-relaxed text-slate-600">{children}</div>
     </div>
   );
 }
@@ -61,9 +64,9 @@ export function CardGrid({ children, cols = 3 }: { children: ReactNode; cols?: 2
 /** 注意・補足の囲み。 */
 export function Callout({ kind = "note", title, children }: { kind?: "note" | "warning" | "important"; title?: string; children: ReactNode }) {
   const styles = {
-    note: "border-sky-300 bg-sky-50 text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-100",
-    warning: "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100",
-    important: "border-indigo-300 bg-indigo-50 text-indigo-950 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-100",
+    note: "border-slate-300 bg-slate-50 text-slate-800",
+    warning: "border-amber-300 bg-amber-50 text-amber-950",
+    important: "border-red-300 bg-red-50 text-red-950",
   };
   const labels = { note: "補足", warning: "注意", important: "重要" };
   return (
@@ -90,9 +93,9 @@ export function CodeBlock({ code, label }: { code: string; label?: string }) {
 export function DataTable({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
   return (
     <>
-      <div className="hidden overflow-x-auto rounded-lg border border-slate-200 sm:block dark:border-slate-800">
+      <div className="hidden overflow-x-auto rounded-lg border border-slate-200 sm:block">
         <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
+          <thead className="bg-slate-50 text-slate-900">
             <tr>
               {head.map((h) => (
                 <th key={h} className="px-4 py-3 font-semibold">
@@ -101,11 +104,11 @@ export function DataTable({ head, rows }: { head: string[]; rows: ReactNode[][] 
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+          <tbody className="divide-y divide-slate-200">
             {rows.map((row, i) => (
               <tr key={i} className="align-top">
                 {row.map((cell, j) => (
-                  <td key={j} className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                  <td key={j} className="px-4 py-3 text-slate-700">
                     {cell}
                   </td>
                 ))}
@@ -116,14 +119,14 @@ export function DataTable({ head, rows }: { head: string[]; rows: ReactNode[][] 
       </div>
       <ul className="space-y-3 sm:hidden">
         {rows.map((row, i) => (
-          <li key={i} className="rounded-lg border border-slate-200 p-4 text-sm dark:border-slate-800">
+          <li key={i} className="rounded-lg border border-slate-200 p-4 text-sm">
             {/* 1列目を見出しにし、残りを「列名: 値」で並べる */}
-            <div className="font-semibold text-slate-900 dark:text-white">{row[0]}</div>
+            <div className="font-semibold text-slate-900">{row[0]}</div>
             <dl className="mt-2 space-y-2">
               {row.slice(1).map((cell, j) => (
                 <div key={j}>
-                  <dt className="text-xs font-semibold text-slate-500 dark:text-slate-400">{head[j + 1]}</dt>
-                  <dd className="mt-0.5 text-slate-700 dark:text-slate-300">{cell}</dd>
+                  <dt className="text-xs font-semibold text-slate-500">{head[j + 1]}</dt>
+                  <dd className="mt-0.5 text-slate-700">{cell}</dd>
                 </div>
               ))}
             </dl>
@@ -138,8 +141,8 @@ export function DataTable({ head, rows }: { head: string[]; rows: ReactNode[][] 
 export function ButtonLink({ to, href, children, variant = "primary" }: { to?: string; href?: string; children: ReactNode; variant?: "primary" | "secondary" }) {
   const cls =
     variant === "primary"
-      ? "bg-indigo-600 text-white hover:bg-indigo-500"
-      : "border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800";
+      ? "bg-red-600 text-white hover:bg-red-700"
+      : "border border-slate-300 bg-white text-slate-800 hover:border-red-300 hover:text-red-700";
   const className = `inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold shadow-sm transition-colors ${cls}`;
   if (to) {
     return (
@@ -166,14 +169,14 @@ export function ExtLink({ href, children }: { href: string; children: ReactNode 
 
 /** インラインのコード。 */
 export function C({ children }: { children: ReactNode }) {
-  return <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[0.9em] text-slate-800 dark:bg-slate-800 dark:text-slate-200">{children}</code>;
+  return <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[0.9em] text-slate-800">{children}</code>;
 }
 
 /** ページ内の目次。 */
 export function Toc({ items }: { items: { id: string; label: string }[] }) {
   return (
-    <nav aria-label="目次" className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm dark:border-slate-800 dark:bg-slate-900">
-      <p className="font-semibold text-slate-900 dark:text-white">このページの内容</p>
+    <nav aria-label="目次" className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm">
+      <p className="font-semibold text-slate-900">このページの内容</p>
       <ol className="mt-2 grid gap-1 sm:grid-cols-2">
         {items.map((item, i) => (
           <li key={item.id}>

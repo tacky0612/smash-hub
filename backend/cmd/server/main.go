@@ -1,4 +1,4 @@
-// Command server は Smash-hub のバックエンドを起動する。
+// Command server は SmashHub のバックエンドを起動する。
 package main
 
 import (

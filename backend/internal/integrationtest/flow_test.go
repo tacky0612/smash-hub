@@ -17,34 +17,34 @@ import (
 // ログイン → 対戦相手を探す → 部屋 ID の共有 → 両者の報告 → レート反映 → ランキング、の一連の流れ。
 func TestMatchFlow_ConfirmUpdatesRatingAndRanking(t *testing.T) {
 	e := newEnv(t)
-	alice, bob := newPlayer(t, e, "alice"), newPlayer(t, e, "bob")
-	id := matchPair(t, alice, bob)
+	taro, hanako := newPlayer(t, e, "taro"), newPlayer(t, e, "hanako")
+	id := matchPair(t, taro, hanako)
 
-	m := alice.match(id)
+	m := taro.match(id)
 	if m.MyRole != "player1" || m.RoomPassword != "1122" || m.Status != "in_progress" {
 		t.Fatalf("対戦ルームの状態が正しくない: %+v", m)
 	}
 	// 部屋 ID を設定できるのはプレイヤー1だけ
-	bob.call("PUT", "/api/matches/"+id+"/room", map[string]string{"roomId": "AB12C"}, http.StatusForbidden, nil)
-	alice.call("PUT", "/api/matches/"+id+"/room", map[string]string{"roomId": "AB12C"}, http.StatusOK, nil)
-	if got := bob.match(id).RoomID; got != "AB12C" {
+	hanako.call("PUT", "/api/matches/"+id+"/room", map[string]string{"roomId": "AB12C"}, http.StatusForbidden, nil)
+	taro.call("PUT", "/api/matches/"+id+"/room", map[string]string{"roomId": "AB12C"}, http.StatusOK, nil)
+	if got := hanako.match(id).RoomID; got != "AB12C" {
 		t.Fatalf("プレイヤー2に部屋 ID が見えない: %q", got)
 	}
 
 	// 片方の報告では確定しない。相手の報告内容はそろうまで見えない
-	alice.report(id, "win")
-	if m := bob.match(id); m.Status != "in_progress" || !m.Player1.Reported || m.Player1.Report != "" {
+	taro.report(id, "win")
+	if m := hanako.match(id); m.Status != "in_progress" || !m.Player1.Reported || m.Player1.Report != "" {
 		t.Fatalf("片方の報告後の状態が正しくない: %+v", m)
 	}
-	m = bob.report(id, "lose")
-	if m.Status != "confirmed" || m.Winner != alice.ID {
+	m = hanako.report(id, "lose")
+	if m.Status != "confirmed" || m.Winner != taro.ID {
 		t.Fatalf("報告が一致しても確定しない: %+v", m)
 	}
 
-	if r := alice.rating(alice.ID); r.Rating != 1516 || r.Wins != 1 || r.Matches != 1 {
+	if r := taro.rating(taro.ID); r.Rating != 1516 || r.Wins != 1 || r.Matches != 1 {
 		t.Errorf("勝者のレート = %+v", r)
 	}
-	if r := alice.rating(bob.ID); r.Rating != 1484 || r.Losses != 1 {
+	if r := taro.rating(hanako.ID); r.Rating != 1484 || r.Losses != 1 {
 		t.Errorf("敗者のレート = %+v", r)
 	}
 
@@ -55,64 +55,64 @@ func TestMatchFlow_ConfirmUpdatesRatingAndRanking(t *testing.T) {
 			Rating      int    `json:"rating"`
 		} `json:"entries"`
 	}
-	alice.call("GET", "/api/ranking", nil, http.StatusOK, &ranking)
-	if len(ranking.Entries) != 2 || ranking.Entries[0].DisplayName != "alice" || ranking.Entries[0].Rating != 1516 {
+	taro.call("GET", "/api/ranking", nil, http.StatusOK, &ranking)
+	if len(ranking.Entries) != 2 || ranking.Entries[0].DisplayName != "taro" || ranking.Entries[0].Rating != 1516 {
 		t.Errorf("ランキング = %+v", ranking.Entries)
 	}
 
 	// 確定後はマッチング待ちでも対戦中でもない
-	if st := alice.status(); st.State != "idle" {
+	if st := taro.status(); st.State != "idle" {
 		t.Errorf("確定後の状態 = %+v", st)
 	}
 }
 
 func TestMatchFlow_MismatchThenReReport(t *testing.T) {
 	e := newEnv(t)
-	alice, bob := newPlayer(t, e, "alice"), newPlayer(t, e, "bob")
-	id := matchPair(t, alice, bob)
+	taro, hanako := newPlayer(t, e, "taro"), newPlayer(t, e, "hanako")
+	id := matchPair(t, taro, hanako)
 
-	alice.report(id, "win")
-	m := bob.report(id, "win")
+	taro.report(id, "win")
+	m := hanako.report(id, "win")
 	if m.Status != "in_progress" || !m.Mismatched || m.Player1.Report != "win" {
 		t.Fatalf("食い違いの状態が正しくない: %+v", m)
 	}
-	if r := alice.rating(alice.ID); r.Matches != 0 {
+	if r := taro.rating(taro.ID); r.Matches != 0 {
 		t.Fatalf("食い違いでレートが動いた: %+v", r)
 	}
-	if m := bob.report(id, "lose"); m.Status != "confirmed" || m.Winner != alice.ID {
+	if m := hanako.report(id, "lose"); m.Status != "confirmed" || m.Winner != taro.ID {
 		t.Fatalf("報告し直しで確定しない: %+v", m)
 	}
 }
 
 func TestMatchFlow_CancelByBoth(t *testing.T) {
 	e := newEnv(t)
-	alice, bob := newPlayer(t, e, "alice"), newPlayer(t, e, "bob")
-	id := matchPair(t, alice, bob)
-	alice.report(id, "cancel")
-	if m := bob.report(id, "cancel"); m.Status != "cancelled" {
+	taro, hanako := newPlayer(t, e, "taro"), newPlayer(t, e, "hanako")
+	id := matchPair(t, taro, hanako)
+	taro.report(id, "cancel")
+	if m := hanako.report(id, "cancel"); m.Status != "cancelled" {
 		t.Fatalf("中止にならない: %+v", m)
 	}
-	if r := alice.rating(alice.ID); r.Rating != 1500 || r.Matches != 0 {
+	if r := taro.rating(taro.ID); r.Rating != 1500 || r.Matches != 0 {
 		t.Errorf("中止でレートが動いた: %+v", r)
 	}
 }
 
 func TestMatchFlow_ExpiresAfter24Hours(t *testing.T) {
 	e := newEnv(t)
-	alice, bob := newPlayer(t, e, "alice"), newPlayer(t, e, "bob")
-	id := matchPair(t, alice, bob)
-	alice.report(id, "win")
+	taro, hanako := newPlayer(t, e, "taro"), newPlayer(t, e, "hanako")
+	id := matchPair(t, taro, hanako)
+	taro.report(id, "win")
 
 	e.clock.Advance(24 * time.Hour)
 	n, err := e.app.Matches.ExpireDue(context.Background())
 	if err != nil || n != 1 {
 		t.Fatalf("ExpireDue = %d, %v", n, err)
 	}
-	if m := alice.match(id); m.Status != "expired" {
+	if m := taro.match(id); m.Status != "expired" {
 		t.Fatalf("期限切れにならない: %+v", m)
 	}
-	bob.call("POST", "/api/matches/"+id+"/report", map[string]string{"result": "lose"}, http.StatusBadRequest, nil)
-	if r := alice.rating(alice.ID); r.Matches != 0 {
+	hanako.call("POST", "/api/matches/"+id+"/report", map[string]string{"result": "lose"}, http.StatusBadRequest, nil)
+	if r := taro.rating(taro.ID); r.Matches != 0 {
 		t.Errorf("期限切れでレートが動いた: %+v", r)
 	}
 }

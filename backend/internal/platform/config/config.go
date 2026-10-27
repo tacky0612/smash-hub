@@ -69,7 +69,7 @@ func Load() (Config, error) {
 		RankingMinMatches:   envInt("RANKING_MIN_MATCHES", 20),
 	}
 	c.InstanceURL = strings.TrimRight(os.Getenv("INSTANCE_URL"), "/")
-	c.InstanceName = env("INSTANCE_NAME", "Smash-hub")
+	c.InstanceName = env("INSTANCE_NAME", "SmashHub")
 	c.InstancePrivateKey = os.Getenv("INSTANCE_PRIVATE_KEY")
 	c.AccountKeySecret = []byte(os.Getenv("ACCOUNT_KEY_SECRET"))
 	for _, p := range strings.Split(os.Getenv("PEERS"), ",") {

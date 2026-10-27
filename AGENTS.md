@@ -4,7 +4,7 @@ AI コーディングエージェント（Claude Code・Codex・Copilot 等）�
 
 ## プロジェクト概要
 
-Smash-hub は、大乱闘スマッシュブラザーズ SPECIAL の対戦マッチング・結果報告・レーティングを提供する **分散（連合）型・非営利・OSS** のファンサイトです。複数の独立した運営者のインスタンスが署名付きの対戦記録と対戦募集を共有し合い、1つのインスタンスが閉鎖しても記録とサービスが継続すること、サイトごとにレートが分断されない（連合全体で1つのレート）こと、利用者の少ないインスタンスでも別のインスタンスの利用者とマッチングできることを目指します。
+SmashHub は、大乱闘スマッシュブラザーズ SPECIAL の対戦マッチング・結果報告・レーティングを提供する **分散（連合）型・非営利・OSS** のファンサイトです。複数の独立した運営者のインスタンスが署名付きの対戦記録と対戦募集を共有し合い、1つのインスタンスが閉鎖しても記録とサービスが継続すること、サイトごとにレートが分断されない（全インスタンスで共通の SmashHubレート）こと、利用者の少ないインスタンスでも別のインスタンスの利用者とマッチングできることを目指します。
 
 - 背景と全体像: [README.md](README.md)、[docs/vision.md](docs/vision.md)
 - 設計: [docs/architecture/overview.md](docs/architecture/overview.md)
@@ -12,7 +12,7 @@ Smash-hub は、大乱闘スマッシュブラザーズ SPECIAL の対戦マッ�
 
 ## 現在のステータス
 
-**開発初期** です。対戦の一連の流れが動き、2つのインスタンスが連合プロトコルで対戦記録を複製し合い、インスタンスをまたいで対戦できます。ログの再配布・アカウント移行・拒否ステージなどは未実装です（[backend/README.md の「実装状況」](backend/README.md#実装状況)）。
+**開発初期** です。対戦の一連の流れが動き、2つのインスタンスが SmashHubプロトコルで対戦記録を複製し合い、インスタンスをまたいで対戦できます。ログの再配布・アカウント移行・拒否ステージなどは未実装です（[backend/README.md の「実装状況」](backend/README.md#実装状況)）。
 
 - `frontend/` の画面は **動作検証用の仮 UI** です。正式なデザインは [#10](https://github.com/tacky0612/smash-hub/issues/10) で進めます。機能を追加するときは仮 UI のままで構いませんが、公式の意匠に寄せない・外部リソースを読み込まない方針は守ってください。
 - 技術スタック: フロントエンドは React（SPA）+ TypeScript + Vite、バックエンドは Go、DB は PostgreSQL（[ADR 0005](docs/adr/0005-tech-stack.md)）。
@@ -52,13 +52,13 @@ AGENTS.md / CLAUDE.md     エージェント向けガイド
 .claude/skills/           Claude Code のスキル
 .github/                  Issue / PR テンプレート、CODEOWNERS、CI（docs-check）
 docs/                     設計・ポリシー・ロードマップ（日本語）
-  architecture/           全体像・連合プロトコル・バックエンド・フロントエンド
+  architecture/           全体像・SmashHubプロトコル・バックエンド・フロントエンド
   domain/                 ユビキタス言語・コンテキスト・レーティング
   security/               セキュリティポリシー・認証・データ保護・脅威モデル・インシデント対応
   operations/             運用者向け（約束事・デプロイ方式）
   adr/                    設計判断の記録
 frontend/                 Web UI（React SPA）
-site/                     連合プロトコルの紹介サイト（React + Tailwind CSS、GitHub Pages）
+site/                     SmashHubプロトコルの紹介サイト（React + Tailwind CSS、GitHub Pages）
 backend/                  クリーンアーキテクチャ + DDD のモジュラーモノリス（Go）
 compose.yaml / Makefile   ローカル環境と起動・テストのコマンド
 ```

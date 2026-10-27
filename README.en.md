@@ -1,13 +1,13 @@
-# Smash-hub
+# SmashHub
 
 [日本語](README.md) | **English**
 
 **Even if one server shuts down, the match history survives.**
 
-Smash-hub is a **federated, non-profit, open-source** platform where *Super Smash Bros. Ultimate* players find opponents, report results, and compete on a rating ladder.
+SmashHub is a **federated, non-profit, open-source** platform where *Super Smash Bros. Ultimate* players find opponents, report results, and compete on a rating ladder.
 
 > [!IMPORTANT]
-> Smash-hub is an unofficial fan project and is not affiliated with Nintendo Co., Ltd. or any related company.
+> SmashHub is an unofficial fan project and is not affiliated with Nintendo Co., Ltd. or any related company.
 > "Super Smash Bros." is a registered trademark of Nintendo Co., Ltd.
 
 > [!NOTE]
@@ -17,7 +17,7 @@ Smash-hub is a **federated, non-profit, open-source** platform where *Super Smas
 
 On October 25, 2026, "Smashmate", a fan site widely used by Japanese players, shut down because running it had become too much of a burden for its operator. Sites run by a single person share the same weaknesses: when the operator stops, the service disappears and years of match history are lost with it, and all of the operational load falls on one person. And when players scatter across many replacement sites, match records and ratings get split per site (the same rating means different strength on different sites), and small sites cannot find opponents for their players.
 
-Smash-hub addresses this with a **federated architecture** similar to [Mastodon](https://joinmastodon.org/):
+SmashHub addresses this with a **federated architecture** similar to [Mastodon](https://joinmastodon.org/):
 
 - Multiple independent operators run their own **instances**.
 - A match result is confirmed only when **both players sign** it, so anyone can verify that a record has not been tampered with.
@@ -26,7 +26,7 @@ Smash-hub addresses this with a **federated architecture** similar to [Mastodon]
 - Waiting match requests are shared between instances, so players can **match with players on other instances**, even on a small instance.
 - Accounts can **move** to another instance (planned).
 
-Smash-hub is not an official successor of Smashmate. Its rating rules and formula follow Smashmate's, so its players can feel at home.
+SmashHub is not an official successor of Smashmate. Its rating rules and formula follow Smashmate's, so its players can feel at home.
 
 ## Policies (summary)
 
@@ -53,4 +53,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) (Japanese). Please report vulnerabilities
 
 ## License
 
-[GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE). It covers the whole repository, including the documentation. If you modify Smash-hub and run it as an instance, you must make the modified source code available to its users.
+[GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE). It covers the whole repository, including the documentation. If you modify SmashHub and run it as an instance, you must make the modified source code available to its users.

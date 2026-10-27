@@ -27,3 +27,7 @@ export const DOCS = {
 
 export const DISCUSSIONS = `${REPO}/discussions`;
 export const ISSUES = `${REPO}/issues`;
+/** スマブラファンの参加を歓迎するお知らせ（Discussions の Announcements） */
+export const WELCOME_DISCUSSION = `${REPO}/discussions/20`;
+/** 機能の提案を受け付ける Discussions のカテゴリー */
+export const IDEAS = `${REPO}/discussions/categories/ideas`;

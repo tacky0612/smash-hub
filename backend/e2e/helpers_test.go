@@ -1,7 +1,7 @@
 //go:build e2e
 
 // Package e2e は、Docker Compose で立ち上げた2つのインスタンス（Instance1・Instance2）に対して、
-// 連合プロトコルでの対戦の一連の流れを検証するテスト。
+// SmashHubプロトコルでの対戦の一連の流れを検証するテスト。
 // 実行方法: make test-e2e（docs: backend/README.md）
 package e2e
 

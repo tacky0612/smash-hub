@@ -2,11 +2,11 @@
 
 ## 脆弱性の報告
 
-Smash-hub のソフトウェアに脆弱性を見つけた場合は、**公開の Issue・Discussion・SNS には書かず**、GitHub の [Private vulnerability reporting](https://docs.github.com/ja/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability) から非公開で報告してください（リポジトリの **Security** タブ → **Report a vulnerability**）。
+SmashHub のソフトウェアに脆弱性を見つけた場合は、**公開の Issue・Discussion・SNS には書かず**、GitHub の [Private vulnerability reporting](https://docs.github.com/ja/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability) から非公開で報告してください（リポジトリの **Security** タブ → **Report a vulnerability**）。
 
 報告には、可能な範囲で次の情報を含めてください。
 
-- 影響を受けるコンポーネント（frontend / backend / 連合プロトコル / ドキュメント上の設計）
+- 影響を受けるコンポーネント（frontend / backend / SmashHubプロトコル / ドキュメント上の設計）
 - 再現手順
 - 想定される影響
 - 修正案（あれば）

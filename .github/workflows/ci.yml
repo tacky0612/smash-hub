@@ -61,7 +61,7 @@ jobs:
       - name: 型チェックとビルド
         run: npm run build
 
-  # 2つのインスタンスを Docker で立ち上げ、連合プロトコルでの対戦の一連の流れを検証する
+  # 2つのインスタンスを Docker で立ち上げ、SmashHubプロトコルでの対戦の一連の流れを検証する
   e2e:
     runs-on: ubuntu-latest
     steps:

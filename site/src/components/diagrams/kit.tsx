@@ -4,22 +4,23 @@ import { createContext, useContext, useId, type ReactNode } from "react";
 
 export type Tone = "primary" | "neutral" | "accent" | "success" | "danger" | "muted";
 
+// 配色: 白地にグレーの濃淡、差し色は赤。主役（インスタンス・記録）を赤、補助（既存サイト・記録 ID）をチャコールで表す
 const NODE_TONES: Record<Tone, { box: string; text: string }> = {
-  primary: { box: "fill-indigo-50 stroke-indigo-400 dark:fill-indigo-950 dark:stroke-indigo-500", text: "fill-indigo-950 dark:fill-indigo-100" },
-  neutral: { box: "fill-white stroke-slate-300 dark:fill-slate-900 dark:stroke-slate-600", text: "fill-slate-800 dark:fill-slate-100" },
-  accent: { box: "fill-amber-50 stroke-amber-400 dark:fill-amber-950 dark:stroke-amber-500", text: "fill-amber-950 dark:fill-amber-100" },
-  success: { box: "fill-emerald-50 stroke-emerald-500 dark:fill-emerald-950 dark:stroke-emerald-500", text: "fill-emerald-950 dark:fill-emerald-100" },
-  danger: { box: "fill-rose-50 stroke-rose-400 dark:fill-rose-950 dark:stroke-rose-500", text: "fill-rose-950 dark:fill-rose-100" },
-  muted: { box: "fill-slate-100 stroke-slate-300 dark:fill-slate-800 dark:stroke-slate-600", text: "fill-slate-500 dark:fill-slate-400" },
+  primary: { box: "fill-red-50 stroke-red-500", text: "fill-red-950" },
+  neutral: { box: "fill-white stroke-slate-300", text: "fill-slate-800" },
+  accent: { box: "fill-slate-800 stroke-slate-800", text: "fill-white" },
+  success: { box: "fill-white stroke-red-400", text: "fill-slate-900" },
+  danger: { box: "fill-slate-100 stroke-slate-400", text: "fill-slate-500" },
+  muted: { box: "fill-slate-100 stroke-slate-300", text: "fill-slate-500" },
 };
 
 const LINE_TONES: Record<Tone, { stroke: string; fill: string }> = {
-  primary: { stroke: "stroke-indigo-500 dark:stroke-indigo-400", fill: "fill-indigo-500 dark:fill-indigo-400" },
-  neutral: { stroke: "stroke-slate-500 dark:stroke-slate-400", fill: "fill-slate-500 dark:fill-slate-400" },
-  accent: { stroke: "stroke-amber-500 dark:stroke-amber-400", fill: "fill-amber-500 dark:fill-amber-400" },
-  success: { stroke: "stroke-emerald-600 dark:stroke-emerald-400", fill: "fill-emerald-600 dark:fill-emerald-400" },
-  danger: { stroke: "stroke-rose-500 dark:stroke-rose-400", fill: "fill-rose-500 dark:fill-rose-400" },
-  muted: { stroke: "stroke-slate-300 dark:stroke-slate-600", fill: "fill-slate-300 dark:fill-slate-600" },
+  primary: { stroke: "stroke-red-600", fill: "fill-red-600" },
+  neutral: { stroke: "stroke-slate-500", fill: "fill-slate-500" },
+  accent: { stroke: "stroke-slate-800", fill: "fill-slate-800" },
+  success: { stroke: "stroke-red-400", fill: "fill-red-400" },
+  danger: { stroke: "stroke-slate-400", fill: "fill-slate-400" },
+  muted: { stroke: "stroke-slate-300", fill: "fill-slate-300" },
 };
 
 const TONES = Object.keys(LINE_TONES) as Tone[];
@@ -44,7 +45,7 @@ export function Diagram({ title, caption, width, height, children, minWidth = Ma
   const prefix = useId().replace(/:/g, "");
   return (
     <figure className="my-8">
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-slate-50/60 p-4">
         <svg
           viewBox={`0 0 ${width} ${height}`}
           role="img"
@@ -72,7 +73,7 @@ export function Diagram({ title, caption, width, height, children, minWidth = Ma
           <MarkerContext.Provider value={prefix}>{children}</MarkerContext.Provider>
         </svg>
       </div>
-      {caption && <figcaption className="mt-2 text-center text-sm text-slate-500 dark:text-slate-400">{caption}</figcaption>}
+      {caption && <figcaption className="mt-2 text-center text-sm text-slate-500">{caption}</figcaption>}
     </figure>
   );
 }
@@ -185,8 +186,8 @@ export function Label({ x, y, text, anchor = "middle" }: { x: number; y: number;
   const left = anchor === "middle" ? x - width / 2 : anchor === "end" ? x - width : x;
   return (
     <g>
-      <rect x={left} y={y - 10} width={width} height={20} rx={4} className="fill-white/90 dark:fill-slate-950/90" />
-      <text x={left + width / 2} y={y} textAnchor="middle" dominantBaseline="middle" className="fill-slate-600 text-[12px] dark:fill-slate-300">
+      <rect x={left} y={y - 10} width={width} height={20} rx={4} className="fill-white/90" />
+      <text x={left + width / 2} y={y} textAnchor="middle" dominantBaseline="middle" className="fill-slate-600 text-[12px]">
         {text}
       </text>
     </g>
@@ -201,7 +202,7 @@ export function Caption({ x, y, text, anchor = "middle", strong }: { x: number; 
       y={y}
       textAnchor={anchor}
       dominantBaseline="middle"
-      className={strong ? "fill-slate-800 text-[14px] font-bold dark:fill-slate-100" : "fill-slate-500 text-[12px] dark:fill-slate-400"}
+      className={strong ? "fill-slate-800 text-[14px] font-bold" : "fill-slate-500 text-[12px]"}
     >
       {text}
     </text>
@@ -214,7 +215,7 @@ export function Region({ x, y, w, h, label, tone = "muted" }: { x: number; y: nu
     <g>
       <rect x={x} y={y} width={w} height={h} rx={14} className={`fill-transparent ${LINE_TONES[tone].stroke}`} strokeWidth={1.5} strokeDasharray="6 5" />
       {label && (
-        <text x={x + 14} y={y + 18} dominantBaseline="middle" className="fill-slate-500 text-[12px] font-semibold dark:fill-slate-400">
+        <text x={x + 14} y={y + 18} dominantBaseline="middle" className="fill-slate-500 text-[12px] font-semibold">
           {label}
         </text>
       )}

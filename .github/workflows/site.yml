@@ -1,4 +1,4 @@
-# 連合プロトコルの紹介サイト（site/）をビルドし、main への push で GitHub Pages にデプロイする。
+# SmashHubプロトコルの紹介サイト（site/）をビルドし、main への push で GitHub Pages にデプロイする。
 # PR ではビルド（型チェックを含む）だけを行う。
 # 事前に、リポジトリの Settings → Pages → Build and deployment → Source を「GitHub Actions」にしておく。
 name: site
