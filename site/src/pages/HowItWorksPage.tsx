@@ -148,7 +148,7 @@ export function HowItWorksPage() {
           </p>
           <Resilience />
           <p className="text-sm text-slate-500">
-            ログの再配布・スナップショット・アカウント移行は今後実装します（
+            ログの全体とレートを1つにまとめたスナップショットを書き出せ、誰でもそこからレートを再計算して、インスタンスの表示と一致するかを確かめられます。ログの再配布・アカウント移行は今後実装します（
             <ExtLink href={DOCS.roadmap}>ロードマップ</ExtLink>）。
           </p>
         </Section>

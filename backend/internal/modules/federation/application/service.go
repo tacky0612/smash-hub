@@ -27,6 +27,14 @@ type PeerState struct {
 	LastHash  string
 }
 
+// ChainHead は1つのインスタンス（オリジン）のログの末尾。ハッシュチェーンにより、先頭からここまでの全イベントを指す。
+type ChainHead struct {
+	InstanceID string `json:"instance_id"`
+	PublicKey  string `json:"public_key"` // base64
+	Seq        int64  `json:"seq"`
+	Hash       string `json:"hash"`
+}
+
 // RemoteAccount は他インスタンスのアカウントの公開情報。
 type RemoteAccount struct {
 	AccountID    shared.AccountID

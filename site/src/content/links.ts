@@ -10,6 +10,7 @@ export const DOCS = {
   federation: repoFile("docs/architecture/federation.md"),
   forExistingSites: repoFile("docs/architecture/federation-for-existing-sites.md"),
   rating: repoFile("docs/domain/rating.md"),
+  ratingTestVectors: repoFile("docs/domain/rating-test-vectors.csv"),
   matchRules: repoFile("docs/domain/match-rules.md"),
   fighters: repoFile("docs/domain/fighters.md"),
   policy: repoFile("docs/policy.md"),

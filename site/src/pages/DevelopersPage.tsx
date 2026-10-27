@@ -231,7 +231,7 @@ make down`}
             ]}
           />
           <p>
-            計算式とテストベクタは <ExtLink href={DOCS.rating}>レーティング</ExtLink> にあります。
+            計算式は <ExtLink href={DOCS.rating}>レーティング</ExtLink> に、境界値を含むテストベクタは <ExtLink href={DOCS.ratingTestVectors}>CSV</ExtLink> にあります。
           </p>
         </Section>
 
@@ -249,7 +249,7 @@ make down`}
           </CardGrid>
           <Callout kind="note" title="現在の状況">
             <p>
-              実装済み: アカウントと対戦記録のログ・記録の無効化・pull 同期と検証・SmashHubレート・インスタンスをまたぐ対戦。未実装: ログの再配布・スナップショット・鍵の更新・アカウント移行。ワイヤーフォーマットは変わる可能性があります（
+              実装済み: アカウントと対戦記録のログ・記録の無効化・pull 同期と検証・SmashHubレート・インスタンスをまたぐ対戦・スナップショット（コマンドでの出力と、レートの再計算による検証）。未実装: ログの再配布・スナップショットの HTTP での配布・鍵の更新・アカウント移行。ワイヤーフォーマットは変わる可能性があります（
               <ExtLink href={DOCS.roadmap}>ロードマップ</ExtLink>）。
             </p>
           </Callout>

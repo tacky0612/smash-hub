@@ -1,9 +1,16 @@
 // Command server は SmashHub のバックエンドを起動する。
+//
+//	server                                       サーバーを起動する
+//	server snapshot [-o ファイル]                 ログのスナップショットを書き出す（既定は標準出力。DB の設定が必要）
+//	server verify-snapshot [-key URL=鍵] ファイル  スナップショットを検証し、レートを再計算して突き合わせる（DB は不要）
+//
+// スナップショットは docs/architecture/federation.md の「8.3 スナップショット」。
 package main
 
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -17,6 +24,24 @@ import (
 )
 
 func main() {
+	if len(os.Args) > 1 {
+		// サブコマンドは標準出力に結果を書くため、ログは標準エラー出力に出す
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
+		var err error
+		switch os.Args[1] {
+		case "snapshot":
+			err = runSnapshot(os.Args[2:])
+		case "verify-snapshot":
+			err = runVerifySnapshot(os.Args[2:], os.Stdout)
+		default:
+			err = fmt.Errorf("unknown command %q (snapshot / verify-snapshot)", os.Args[1])
+		}
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "エラー:", err)
+			os.Exit(1)
+		}
+		return
+	}
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 	if err := run(); err != nil {
 		slog.Error("server stopped", "err", err)

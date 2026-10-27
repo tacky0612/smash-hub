@@ -59,6 +59,20 @@ func (d *DB) InTx(ctx context.Context, fn func(ctx context.Context) error) error
 	return tx.Commit(ctx)
 }
 
+// InReadOnlySnapshot は fn を読み取り専用・REPEATABLE READ のトランザクションで実行する。
+// fn の中の読み取りは、すべて同じ時点の DB の内容を見る（スナップショットの出力に使う）。
+func (d *DB) InReadOnlySnapshot(ctx context.Context, fn func(ctx context.Context) error) error {
+	tx, err := d.Pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if err := fn(context.WithValue(ctx, txKey{}, tx)); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
 // Q は ctx にトランザクションがあればそれを、なければ接続プールを返す。
 func (d *DB) Q(ctx context.Context) Querier {
 	if tx, ok := ctx.Value(txKey{}).(pgx.Tx); ok {

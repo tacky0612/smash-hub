@@ -313,9 +313,10 @@ SmashHub のコード（[AGPL-3.0](../../LICENSE)）を組み込んで使う場�
   - SmashHubレート
   - インスタンスをまたぐ対戦
   - 2つのインスタンスを立てた E2E テスト（`make test-e2e`）
+  - スナップショットの出力と、スナップショットからのレートの再計算による検証（→ [SmashHubプロトコル](federation.md) の「8.3 スナップショット」）。他の言語で実装するときは、レーティングの[テストベクタ（CSV）](../domain/rating-test-vectors.csv)も使えます
 - **未実装**:
   - ログの再配布
-  - スナップショット
+  - スナップショットの HTTP での配布
   - 鍵の更新
   - アカウント移行
   - 新着の push 通知（→ [backend/README.md の「実装状況」](../../backend/README.md#実装状況)）

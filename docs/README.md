@@ -28,6 +28,7 @@ SmashHub の設計・方針・計画をまとめたドキュメント群です�
 | [domain/fighters.md](domain/fighters.md) | ファイター ID とファイターの対応表 |
 | [domain/match-rules.md](domain/match-rules.md) | レーティング対戦のルール（スマメイトのルールを踏襲） |
 | [domain/rating.md](domain/rating.md) | 分散環境でのレーティング算出 |
+| [domain/rating-test-vectors.csv](domain/rating-test-vectors.csv) | レーティングのテストベクタ（機械可読。境界値を含む） |
 
 ## 判断・選定
 

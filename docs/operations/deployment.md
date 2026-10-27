@@ -194,6 +194,7 @@ sudo smash-hub restart   # 設定を反映して起動し直す
 | `smash-hub update [参照]` | 更新する（→ [8.1](#81-更新する)） |
 | `smash-hub backup` | DB のバックアップを今すぐ取る |
 | `smash-hub restore <ファイル>` | バックアップから DB を復元する（→ [9.2](#92-復元する)） |
+| `smash-hub snapshot` | ログのスナップショットを書き出す（→ [9.4](#94-ログのスナップショット)） |
 | `smash-hub check` | 設定ファイルを検証する |
 
 VPS を再起動しても、SmashHub は自動で起動します。
@@ -258,6 +259,30 @@ sudo docker compose -f compose.yaml --env-file ../../smash-hub.env --env-file ..
 sudo rm /opt/smash-hub/secrets.env /opt/smash-hub/backups/*.dump
 sudo bash setup.sh
 ```
+
+### 9.4 ログのスナップショット
+
+```sh
+sudo smash-hub snapshot
+```
+
+インスタンスが保存しているログの全体（自インスタンスのログと、連合先から取り込んだログ）と、インスタンスが計算したレートを、`/opt/smash-hub/snapshots/smashhub-snapshot-<日時>.json` に書き出します（形式は [SmashHubプロトコル](../architecture/federation.md) の「8.3 スナップショット」）。
+
+- 中身は `/federation/log` で公開しているイベントとレートだけで、個人情報や秘密情報は含みません。バックアップと違い、人に渡したり公開したりしてかまいません。
+- **DB のバックアップの代わりにはなりません。** アカウントのログイン情報（識別子ハッシュ）や進行中の対戦は含まないため、スナップショットからインスタンスを復元することはできません。
+- 古いスナップショットは自動では消しません。
+
+スナップショットからレートを再計算し、インスタンスのレートと一致するかを確かめるには、Go が入っている手元の PC でリポジトリを取得して次を実行します。DB は不要です。
+
+```sh
+ssh <ユーザー>@<サーバー> 'sudo cat /opt/smash-hub/snapshots/smashhub-snapshot-20261027-033012.json' > snapshot.json
+cd backend
+go run ./cmd/server verify-snapshot -key https://<DOMAIN>=<公開鍵> snapshot.json
+```
+
+- 署名・連番・ハッシュチェーン・プレイヤー署名を、連合先からの取り込みと同じ手順で検証し、レートを再計算します。一致すれば「再計算した結果はスナップショットのレートと一致しました」と表示します。食い違いがあれば、その内容を表示して終了コード 1 で終わります。
+- `-key` には、`https://<DOMAIN>/federation/instance` の `public_key` を指定します（連合先の分も `-key` を繰り返して指定できます）。省略すると、スナップショットに書かれた鍵を信じて検証します。
+- `-csv <ファイル>` を付けると、再計算した成績（アカウント ID・レート・対戦数・勝ち・負け）を CSV に書き出します。
 
 ## 10. 秘密情報（secrets.env）の保管
 
