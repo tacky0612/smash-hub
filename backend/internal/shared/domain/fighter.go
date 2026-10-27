@@ -12,7 +12,7 @@ type Fighter struct {
 	Name string    `json:"name"`
 }
 
-// Fighters は使用できるファイターの一覧（参戦順）。ID は連合プロトコルの対戦記録でも使う（対応表: docs/domain/fighters.md）。
+// Fighters は使用できるファイターの一覧（参戦順）。ID は SmashHubプロトコルの対戦記録でも使う（対応表: docs/domain/fighters.md）。
 // 一度割り当てた ID は変更・再利用しない。
 var Fighters = []Fighter{
 	{"mario", "マリオ"},

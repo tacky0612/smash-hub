@@ -1,4 +1,4 @@
-/* Smash-hub 独自のデザイン。公式の意匠には寄せない（docs/policy.md）。 */
+/* SmashHub 独自のデザイン。公式の意匠には寄せない（docs/policy.md）。 */
 :root {
   /* 白と赤を基調にしたライトテーマのみ（OS のダークモード設定には追従しない） */
   --bg: #ffffff;

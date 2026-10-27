@@ -25,7 +25,7 @@ export function LoginPage() {
     <section className="card narrow">
       <h1>ログイン</h1>
       <p className="muted">
-        Smash-hub はメールアドレスやパスワードを保存しません。外部サービスのアカウントでログインします。
+        SmashHub はメールアドレスやパスワードを保存しません。外部サービスのアカウントでログインします。
       </p>
       {error && <p className="error">{error}</p>}
       {providers?.discord && (

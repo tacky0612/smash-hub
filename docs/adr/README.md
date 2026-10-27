@@ -1,6 +1,6 @@
 # Architecture Decision Records (ADR)
 
-Smash-hub の重要な設計判断を記録します。運営者や開発者が入れ替わっても「なぜそうなっているのか」を追えるようにするためです。
+SmashHub の重要な設計判断を記録します。運営者や開発者が入れ替わっても「なぜそうなっているのか」を追えるようにするためです。
 
 ## 書き方
 
@@ -19,7 +19,8 @@ Smash-hub の重要な設計判断を記録します。運営者や開発者が�
 | [0004](0004-rating-formula.md) | レーティングの計算式にスマメイト式を採用する | Accepted |
 | [0005](0005-tech-stack.md) | フロントエンドを React（SPA）、バックエンドを Go、DB を PostgreSQL とする | Accepted |
 | [0006](0006-custom-federation-protocol.md) | 対戦記録の連合は独自プロトコルで行う | Accepted |
-| [0007](0007-federation-open-to-commercial-sites.md) | 連合への参加に非営利を求めない | Accepted |
+| [0007](0007-federation-open-to-commercial-sites.md) | 連合への参加に非営利を求めない | Superseded by 0011 |
 | [0008](0008-account-id-did-key.md) | アカウント ID は Ed25519 公開鍵の did:key とする | Accepted |
 | [0009](0009-deployment-vps-startup-script.md) | インスタンスは国内 VPS のスタートアップスクリプトで立ち上げる | Accepted |
 | [0010](0010-game-picks-in-report.md) | ゲームごとのファイターは結果報告で任意に入力し、両者の入力が一致したときだけ対戦記録に含める | Accepted |
+| [0011](0011-federation-participation-conditions.md) | 連合への参加条件を、記録と利用者の保護に絞る | Accepted |

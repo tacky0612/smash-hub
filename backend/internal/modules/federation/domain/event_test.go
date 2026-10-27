@@ -21,22 +21,22 @@ func newKey() keyPair {
 
 const host = "https://a.example"
 
-func signedRecord(alice, bob keyPair) shared.MatchRecord {
+func signedRecord(taro, hanako keyPair) shared.MatchRecord {
 	st := shared.MatchStatement{
 		MatchID: "m1", HostInstance: host, PlayedAt: "2026-11-01T20:00:00.000Z", Ruleset: shared.RulesetStandard,
-		Players: []shared.PlayerRef{{AccountID: shared.AccountID(alice.did)}, {AccountID: shared.AccountID(bob.did)}},
+		Players: []shared.PlayerRef{{AccountID: shared.AccountID(taro.did)}, {AccountID: shared.AccountID(hanako.did)}},
 		Picks:   []shared.Pick{{Game: 1, Characters: []shared.FighterID{"mario", "fox"}}},
 		Winner:  0,
 	}
 	return shared.MatchRecord{MatchStatement: st, Signatures: []shared.PlayerSignature{
-		{AccountID: shared.AccountID(alice.did), Sig: alice.sign(st.Bytes())},
-		{AccountID: shared.AccountID(bob.did), Sig: bob.sign(st.Bytes())},
+		{AccountID: shared.AccountID(taro.did), Sig: taro.sign(st.Bytes())},
+		{AccountID: shared.AccountID(hanako.did), Sig: hanako.sign(st.Bytes())},
 	}}
 }
 
 func TestMatchRecorded_RoundTripAndTamperDetection(t *testing.T) {
-	inst, alice, bob := newKey(), newKey(), newKey()
-	e, err := NewEvent(TypeMatchRecorded, host, 1, "", "2026-11-01T20:10:00.000Z", signedRecord(alice, bob), inst.sign)
+	inst, taro, hanako := newKey(), newKey(), newKey()
+	e, err := NewEvent(TypeMatchRecorded, host, 1, "", "2026-11-01T20:10:00.000Z", signedRecord(taro, hanako), inst.sign)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,29 +78,29 @@ func TestMatchRecorded_RoundTripAndTamperDetection(t *testing.T) {
 }
 
 func TestMatchRecorded_RejectsForeignHostAndMissingSignature(t *testing.T) {
-	inst, alice, bob := newKey(), newKey(), newKey()
-	rec := signedRecord(alice, bob)
+	inst, taro, hanako := newKey(), newKey(), newKey()
+	rec := signedRecord(taro, hanako)
 	rec.Signatures = rec.Signatures[:1]
 	e, _ := NewEvent(TypeMatchRecorded, host, 1, "", "2026-11-01T20:10:00.000Z", rec, inst.sign)
 	if _, err := DecodeMatchRecorded(e, crypto.VerifyDID); err == nil {
 		t.Error("署名が1人分の記録を受け付けた")
 	}
-	e, _ = NewEvent(TypeMatchRecorded, "https://other.example", 1, "", "2026-11-01T20:10:00.000Z", signedRecord(alice, bob), inst.sign)
+	e, _ = NewEvent(TypeMatchRecorded, "https://other.example", 1, "", "2026-11-01T20:10:00.000Z", signedRecord(taro, hanako), inst.sign)
 	if _, err := DecodeMatchRecorded(e, crypto.VerifyDID); err == nil {
 		t.Error("ホスト以外が発行した記録を受け付けた")
 	}
 }
 
 func TestAccountPublished_RequiresAccountSignature(t *testing.T) {
-	inst, alice, mallory := newKey(), newKey(), newKey()
-	a := AccountPublished{AccountID: shared.AccountID(alice.did), DisplayName: "alice", HomeInstance: host}
-	a.AccountSig = alice.sign(a.SigningBytes())
+	inst, taro, gonbe := newKey(), newKey(), newKey()
+	a := AccountPublished{AccountID: shared.AccountID(taro.did), DisplayName: "taro", HomeInstance: host}
+	a.AccountSig = taro.sign(a.SigningBytes())
 	e, _ := NewEvent(TypeAccountPublished, host, 1, "", "2026-11-01T20:10:00.000Z", a, inst.sign)
 	if _, err := DecodeAccountPublished(e, crypto.VerifyDID); err != nil {
 		t.Fatalf("正しいイベントを拒否した: %v", err)
 	}
-	// 他人（mallory）の鍵で alice を名乗るイベントは拒否する
-	a.AccountSig = mallory.sign(a.SigningBytes())
+	// 他人（gonbe）の鍵で taro を名乗るイベントは拒否する
+	a.AccountSig = gonbe.sign(a.SigningBytes())
 	e, _ = NewEvent(TypeAccountPublished, host, 1, "", "2026-11-01T20:10:00.000Z", a, inst.sign)
 	if _, err := DecodeAccountPublished(e, crypto.VerifyDID); err == nil {
 		t.Error("他人の鍵で署名したアカウントを受け付けた")
@@ -108,11 +108,11 @@ func TestAccountPublished_RequiresAccountSignature(t *testing.T) {
 }
 
 func TestMatchRecorded_ValidatesPicks(t *testing.T) {
-	inst, alice, bob := newKey(), newKey(), newKey()
+	inst, taro, hanako := newKey(), newKey(), newKey()
 	resign := func(r shared.MatchRecord) shared.MatchRecord {
 		r.Signatures = []shared.PlayerSignature{
-			{AccountID: r.Players[0].AccountID, Sig: alice.sign(r.MatchStatement.Bytes())},
-			{AccountID: r.Players[1].AccountID, Sig: bob.sign(r.MatchStatement.Bytes())},
+			{AccountID: r.Players[0].AccountID, Sig: taro.sign(r.MatchStatement.Bytes())},
+			{AccountID: r.Players[1].AccountID, Sig: hanako.sign(r.MatchStatement.Bytes())},
 		}
 		return r
 	}
@@ -133,7 +133,7 @@ func TestMatchRecorded_ValidatesPicks(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rec := signedRecord(alice, bob)
+			rec := signedRecord(taro, hanako)
 			rec.Picks = tt.picks
 			e, _ := NewEvent(TypeMatchRecorded, host, 1, "", "2026-11-01T20:10:00.000Z", resign(rec), inst.sign)
 			if _, err := DecodeMatchRecorded(e, crypto.VerifyDID); (err == nil) != tt.ok {

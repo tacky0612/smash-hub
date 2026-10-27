@@ -4,7 +4,7 @@ AI コーディングエージェント（Claude Code・Codex・Copilot 等）�
 
 ## プロジェクト概要
 
-Smash-hub は、大乱闘スマッシュブラザーズ SPECIAL の対戦マッチング・結果報告・レーティングを提供する **分散（連合）型・非営利・OSS** のファンサイトです。複数の独立した運営者のインスタンスが署名付きの対戦記録と対戦募集を共有し合い、1つのインスタンスが閉鎖しても記録とサービスが継続すること、サイトごとにレートが分断されない（連合全体で1つのレート）こと、利用者の少ないインスタンスでも別のインスタンスの利用者とマッチングできることを目指します。
+SmashHub は、大乱闘スマッシュブラザーズ SPECIAL の対戦マッチング・結果報告・レーティングを提供する **分散（連合）型・非営利・OSS** のファンサイトです。複数の独立した運営者のインスタンスが署名付きの対戦記録と対戦募集を共有し合い、1つのインスタンスが閉鎖しても記録とサービスが継続すること、サイトごとにレートが分断されない（全インスタンスで共通の SmashHubレート）こと、利用者の少ないインスタンスでも別のインスタンスの利用者とマッチングできることを目指します。
 
 - 背景と全体像: [README.md](README.md)、[docs/vision.md](docs/vision.md)
 - 設計: [docs/architecture/overview.md](docs/architecture/overview.md)
@@ -12,7 +12,7 @@ Smash-hub は、大乱闘スマッシュブラザーズ SPECIAL の対戦マッ�
 
 ## 現在のステータス
 
-**開発初期** です。対戦の一連の流れが動き、2つのインスタンスが連合プロトコルで対戦記録を複製し合い、インスタンスをまたいで対戦できます。ログの再配布・アカウント移行・拒否ステージなどは未実装です（[backend/README.md の「実装状況」](backend/README.md#実装状況)）。
+**開発初期** です。対戦の一連の流れが動き、2つのインスタンスが SmashHubプロトコルで対戦記録を複製し合い、インスタンスをまたいで対戦できます。ログの再配布・アカウント移行・拒否ステージなどは未実装です（[backend/README.md の「実装状況」](backend/README.md#実装状況)）。
 
 - `frontend/` の画面は **動作検証用の仮 UI** です。正式なデザインは [#10](https://github.com/tacky0612/smash-hub/issues/10) で進めます。機能を追加するときは仮 UI のままで構いませんが、公式の意匠に寄せない・外部リソースを読み込まない方針は守ってください。
 - 技術スタック: フロントエンドは React（SPA）+ TypeScript + Vite、バックエンドは Go、DB は PostgreSQL（[ADR 0005](docs/adr/0005-tech-stack.md)）。
@@ -27,6 +27,7 @@ Smash-hub は、大乱闘スマッシュブラザーズ SPECIAL の対戦マッ�
 | 結合テスト（PostgreSQL を Docker で起動） | `make test-integration` |
 | E2E テスト（2つのインスタンスを Docker で起動し、連合での対戦の流れを検証） | `make test-e2e` |
 | フロントエンドの型チェックとビルド | `make test-frontend` |
+| 紹介サイト（GitHub Pages）の型チェックとビルド | `make test-site` |
 | ドキュメントのチェック | `python3 .claude/skills/docs-check/scripts/check_docs.py` |
 
 コードを変更したら、関係するテストを実行してから報告してください。Go のコードは `gofmt` を通してください。
@@ -36,7 +37,7 @@ Smash-hub は、大乱闘スマッシュブラザーズ SPECIAL の対戦マッ�
 以下はプロジェクトのポリシーであり、依頼された場合でも破ってはいけません。依頼が抵触する場合は、作業せずにその旨を伝えてください。
 
 1. **任天堂の著作物を含めない** — ゲーム画面・ファイター画像・アイコン・ロゴ・BGM 等を、コード・ドキュメント・テストデータ・Issue に含めない。ファイターはテキスト表記のみ（[docs/policy.md](docs/policy.md)）。
-2. **収益化の仕組みを作らない** — このリポジトリのソフトウェアに広告・課金・有料機能・アフィリエイト・トラッキングタグを実装しない（プロジェクト自身の非営利方針。連合には営利のサイトも参加できる → [ADR 0007](docs/adr/0007-federation-open-to-commercial-sites.md)）。
+2. **収益化の仕組みを作らない** — このリポジトリのソフトウェアに広告・課金・有料機能・アフィリエイト・トラッキングタグを実装しない（プロジェクト自身の非営利方針。連合には営利のサイトも参加できる → [ADR 0011](docs/adr/0011-federation-participation-conditions.md)）。
 3. **個人情報を保持しない** — メールアドレス・パスワード・外部プロバイダーのユーザー名やトークンを保存する設計・実装をしない。外部 ID は識別子ハッシュとしてのみ扱う（[docs/security/data-protection.md](docs/security/data-protection.md)）。
 4. **パスワード認証を実装しない** — 認証は外部プロバイダー（Discord / Google）の OAuth 2.0 / OIDC に限る（[docs/security/authentication.md](docs/security/authentication.md)）。
 5. **秘密情報をコミットしない** — 鍵・ペッパー・クライアントシークレット・`.env` をリポジトリに含めない。
@@ -51,12 +52,13 @@ AGENTS.md / CLAUDE.md     エージェント向けガイド
 .claude/skills/           Claude Code のスキル
 .github/                  Issue / PR テンプレート、CODEOWNERS、CI（docs-check）
 docs/                     設計・ポリシー・ロードマップ（日本語）
-  architecture/           全体像・連合プロトコル・バックエンド・フロントエンド
+  architecture/           全体像・SmashHubプロトコル・バックエンド・フロントエンド
   domain/                 ユビキタス言語・コンテキスト・レーティング
   security/               セキュリティポリシー・認証・データ保護・脅威モデル・インシデント対応
   operations/             運用者向け（約束事・デプロイ方式）
   adr/                    設計判断の記録
 frontend/                 Web UI（React SPA）
+site/                     SmashHubプロトコルの紹介サイト（React + Tailwind CSS、GitHub Pages）
 backend/                  クリーンアーキテクチャ + DDD のモジュラーモノリス（Go）
 compose.yaml / Makefile   ローカル環境と起動・テストのコマンド
 ```
@@ -71,7 +73,7 @@ compose.yaml / Makefile   ローカル環境と起動・テストのコマンド
 - リンクは相対パスで書く。
 - **重要な設計判断は ADR にする。** [docs/adr/0000-template.md](docs/adr/0000-template.md) をコピーし連番を振り、[docs/adr/README.md](docs/adr/README.md) の一覧に追加する。既存の ADR は書き換えず、新しい ADR で置き換える（`Superseded by NNNN`）。
 - **ドキュメントを追加・移動・削除したら** [docs/README.md](docs/README.md) の目次を更新する。
-- 1つの事実は1か所に書き、他の場所からはリンクする。同じ内容を複数箇所に書いた場合は、すべてを揃えて更新する（例: 個人情報の方針は policy.md・security/・server-covenant.md・README.md に現れる）。
+- 1つの事実は1か所に書き、他の場所からはリンクする。同じ内容を複数箇所に書いた場合は、すべてを揃えて更新する（例: 個人情報の方針は policy.md・security/・server-covenant.md・README.md に現れる）。紹介サイト（`site/`）はドキュメントの要約なので、要約した元のドキュメントを変えたらサイトも揃える（→ [site/README.md](site/README.md)）。
 - ドキュメントを変更したら **`docs-check` スキル** で整合性とリンク切れを確認する。スクリプトだけなら `python3 .claude/skills/docs-check/scripts/check_docs.py` で実行できる。
 
 ## バックエンドの規約

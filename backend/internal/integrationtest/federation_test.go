@@ -16,22 +16,22 @@ import (
 // /federation/log から取得した誰もがハッシュチェーンと署名を検証できる。
 func TestFederationLog_ConfirmedMatchIsPublishedAndVerifiable(t *testing.T) {
 	e := newEnv(t)
-	alice, bob := newPlayer(t, e, "alice"), newPlayer(t, e, "bob")
-	id := matchPair(t, alice, bob)
-	alice.report(id, "win")
-	bob.report(id, "lose")
+	taro, hanako := newPlayer(t, e, "taro"), newPlayer(t, e, "hanako")
+	id := matchPair(t, taro, hanako)
+	taro.report(id, "win")
+	hanako.report(id, "lose")
 
 	var info struct {
 		InstanceID string `json:"instance_id"`
 		PublicKey  string `json:"public_key"`
 	}
-	alice.call("GET", "/federation/instance", nil, http.StatusOK, &info)
+	taro.call("GET", "/federation/instance", nil, http.StatusOK, &info)
 	var log struct {
 		Events []json.RawMessage `json:"events"`
 	}
-	alice.call("GET", "/federation/log?since=0", nil, http.StatusOK, &log)
+	taro.call("GET", "/federation/log?since=0", nil, http.StatusOK, &log)
 
-	// alice・bob の AccountPublished と、対戦の MatchRecorded の3件
+	// taro・hanako の AccountPublished と、対戦の MatchRecorded の3件
 	if len(log.Events) != 3 {
 		t.Fatalf("ログの件数 = %d", len(log.Events))
 	}
@@ -57,7 +57,7 @@ func TestFederationLog_ConfirmedMatchIsPublishedAndVerifiable(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if string(r.MatchID) != id || string(r.Players[r.Winner].AccountID) != alice.ID {
+			if string(r.MatchID) != id || string(r.Players[r.Winner].AccountID) != taro.ID {
 				t.Errorf("記録の内容が正しくない: %+v", r)
 			}
 		}
@@ -68,8 +68,8 @@ func TestFederationLog_ConfirmedMatchIsPublishedAndVerifiable(t *testing.T) {
 		t.Errorf("イベントの順番 = %v", types)
 	}
 	// アカウント ID は公開鍵から導出した did:key
-	if _, err := crypto.PublicKeyFromDID(alice.ID); err != nil {
-		t.Errorf("アカウント ID が did:key ではない: %s", alice.ID)
+	if _, err := crypto.PublicKeyFromDID(taro.ID); err != nil {
+		t.Errorf("アカウント ID が did:key ではない: %s", taro.ID)
 	}
 }
 

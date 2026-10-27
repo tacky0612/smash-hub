@@ -1,11 +1,11 @@
 ---
 name: docs-check
-description: Smash-hub のドキュメント（README・docs/・AGENTS.md 等の *.md）の整合性とリンク切れを確認する。ドキュメントを追加・変更・移動・削除した後、PR を出す前、または「ドキュメントをチェックして」「リンク切れを確認して」「整合性を確認して」と頼まれたときに使う。
+description: SmashHub のドキュメント（README・docs/・AGENTS.md 等の *.md）の整合性とリンク切れを確認する。ドキュメントを追加・変更・移動・削除した後、PR を出す前、または「ドキュメントをチェックして」「リンク切れを確認して」「整合性を確認して」と頼まれたときに使う。
 ---
 
 # docs-check
 
-Smash-hub のドキュメントを **機械的なチェック（スクリプト）** と **内容の整合性レビュー（判断を伴う確認）** の2段階で確認する。
+SmashHub のドキュメントを **機械的なチェック（スクリプト）** と **内容の整合性レビュー（判断を伴う確認）** の2段階で確認する。
 
 ## 手順
 
@@ -44,7 +44,8 @@ python3 .claude/skills/docs-check/scripts/check_docs.py
    - バックエンドの構成: `docs/architecture/backend.md`・`backend/README.md`・`AGENTS.md`・実際の `backend/` のディレクトリ（`find backend -type d` で突き合わせる。現在は層までで、層の下は予定）
    - 認証プロバイダー: `docs/security/authentication.md`・`docs/adr/0002-*`・`docs/tech-selection.md`・`docs/roadmap.md`
    - リポジトリ構成: `README.md`・`AGENTS.md` の構成図と実際のファイル
-   - 保持期間などの数値（アクセスログ 14日、対戦ルームのメッセージ 7日、閉鎖予告 30日 等）
+   - 保持期間などの数値（アクセスログ 14日、対戦ルームのメッセージ 7日、閉鎖予告 7日 等）
+   - 紹介サイト: `site/src/pages/*.tsx`・`site/src/components/diagrams/*.tsx` はドキュメント（SmashHubプロトコル・入門・運営ポリシー・約束事・データ保護）の要約。元のドキュメントの変更がサイトに反映されているか
 3. **用語** — [ユビキタス言語](../../../docs/domain/README.md) と異なる用語・表記揺れがないか（例: 「サーバー」と「インスタンス」の混在は、運用者向けの平易な説明を除き「インスタンス」に揃える）。用語表にない新しい概念が出てきていないか。
 4. **ADR との整合** — `Accepted` の ADR と矛盾する記述がないか。ADR が `Proposed` なのに本文で「決定済み」と書いていないか（逆も）。
 5. **ロードマップとの整合** — 各ドキュメントで「Phase N で行う」と書かれた内容が [docs/roadmap.md](../../../docs/roadmap.md) のフェーズと一致しているか。
