@@ -2,9 +2,11 @@
 
 [日本語](README.md) | **English**
 
-**Even if one server shuts down, the match history survives.**
+**Whichever site you play on, you can face players from other sites and compare your strength on the same rating.**
 
-SmashHub is a **federated, non-profit, open-source** platform where *Super Smash Bros. Ultimate* players find opponents, report results, and compete on a rating ladder.
+SmashHub is the **SmashHub Protocol**, which lets multiple independent sites share *Super Smash Bros. Ultimate* match records and ratings, together with its reference implementation (federated, non-profit, open source). Even if one site shuts down, the records and the service carry on.
+
+SmashHub Protocol introduction site (Japanese): **https://tacky0612.github.io/smash-hub/**
 
 > [!IMPORTANT]
 > SmashHub is an unofficial fan project and is not affiliated with Nintendo Co., Ltd. or any related company.
