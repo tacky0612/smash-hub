@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { NAV } from "../routes";
 import { DOCS, REPO, WELCOME_DISCUSSION } from "../content/links";
@@ -42,9 +42,6 @@ function Header() {
         <NavLink to="/" className="flex items-center gap-2 font-bold text-slate-900">
           <Mark />
           <span>SmashHub</span>
-          <span className="hidden rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 sm:inline">
-            SmashHubプロトコル
-          </span>
         </NavLink>
 
         <nav className="hidden items-center gap-1 lg:flex" aria-label="メイン">
@@ -104,14 +101,21 @@ function GitHubLink({ compact = false }: { compact?: boolean }) {
   );
 }
 
-/** プロジェクトのロゴ（SmashHub の頭文字 SH）。public/favicon.svg と同じ形。公式の意匠に寄せない。 */
+/** プロジェクトのロゴ（SmashHub の頭文字 SH を、角の立った字形で少し傾けたもの）。public/favicon.svg と同じ形。公式の意匠に寄せない。 */
 function Mark() {
+  const id = useId();
   return (
     <svg viewBox="0 0 32 32" className="h-7 w-7" aria-hidden>
-      <rect width="32" height="32" rx="7" className="fill-red-600" />
-      <g fill="none" stroke="#fff" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14.2 11.2C13.6 9.4 12 8.6 10.3 8.6 8.2 8.6 6.7 9.9 6.7 11.6c0 1.8 1.4 2.6 3.6 3.3 2.4.8 4 1.6 4 3.8 0 2-1.7 3.4-4 3.4-1.9 0-3.4-.9-4-2.7" />
-        <path d="M18.6 8.8v14.4M26.2 8.8v14.4M18.6 16h7.6" />
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#ef4444" />
+          <stop offset="1" stopColor="#b91c1c" />
+        </linearGradient>
+      </defs>
+      <rect width="32" height="32" rx="8" fill={`url(#${id})`} />
+      <g fill="#fff" transform="translate(16 16) skewX(-12) translate(-15 -16)">
+        <path d="M8.6 9H14v3H9v2.5h5v6L11.4 23H6v-3h5v-2.5H6v-6z" />
+        <path d="M16 9h3v5.5h2V9h3v14h-3v-5.5h-2V23h-3z" />
       </g>
     </svg>
   );

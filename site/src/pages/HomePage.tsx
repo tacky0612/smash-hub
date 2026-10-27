@@ -2,7 +2,7 @@ import { Archive, ArrowRight, BookOpen, Code, Database, Lightbulb, Lock, Plug, S
 import { IconBadge } from "../components/IconBadge";
 import { FederationMap } from "../components/diagrams/ProtocolDiagrams";
 import { ButtonLink, Card, CardGrid } from "../components/ui";
-import { DISCUSSIONS, DOCS, IDEAS, REPO, WELCOME_DISCUSSION } from "../content/links";
+import { DISCUSSIONS, DOCS, IDEAS, REPO } from "../content/links";
 
 const PROBLEMS = [
   {
@@ -41,14 +41,14 @@ export function HomePage() {
           <p className="inline-flex rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-semibold text-red-700">
             分散（連合）型・非営利・OSS
           </p>
-          <h1 className="mt-6 max-w-3xl text-[1.65rem] leading-snug font-bold tracking-tight text-slate-900 sm:text-5xl sm:leading-tight">
+          <h1 className="mt-6 max-w-3xl text-[1.45rem] leading-snug font-bold tracking-tight text-slate-900 sm:text-5xl sm:leading-tight">
             {/* 句の途中で折り返さないよう、句ごとにまとめる */}
             <span className="inline-block">どのサイトで遊んでいても、</span>
-            <span className="inline-block">同じ相手と戦い、</span>
-            <span className="inline-block">同じ物差しで比べられる。</span>
+            <span className="inline-block">ほかのサイトの人とも対戦でき、</span>
+            <span className="inline-block">同じレートで強さを比べられる。</span>
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-600">
-            SmashHub は、大乱闘スマッシュブラザーズ SPECIAL の対戦記録とレートを、複数の独立したサイトで共有するための
+            SmashHub は、大乱闘スマッシュブラザーズ SPECIAL の対戦記録とレートを、複数の独立したサイトで共有するための{" "}
             <strong className="text-slate-900">SmashHubプロトコル</strong>
             と、その参照実装です。1つのサイトが閉鎖しても、記録とサービスが続きます。
           </p>
@@ -135,11 +135,8 @@ export function HomePage() {
                 </p>
               </div>
             </div>
-            <div className="flex shrink-0 flex-col gap-3 sm:flex-row md:flex-col lg:flex-row">
+            <div className="flex shrink-0 flex-col">
               <ButtonLink href={IDEAS}>アイデアを投稿する</ButtonLink>
-              <ButtonLink href={WELCOME_DISCUSSION} variant="secondary">
-                お知らせを読む
-              </ButtonLink>
             </div>
           </div>
         </div>

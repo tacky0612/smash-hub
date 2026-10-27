@@ -104,7 +104,7 @@ sequenceDiagram
 ## 5. 決定済みの事項
 
 - 対戦記録の連合は独自プロトコルで行う（[ADR 0006](../adr/0006-custom-federation-protocol.md)）
-- 連合には営利・非営利を問わず参加できる。SmashHub プロジェクト自身は非営利（[ADR 0007](../adr/0007-federation-open-to-commercial-sites.md)）
+- 連合には営利・非営利を問わず参加できる。SmashHub プロジェクト自身は非営利（[ADR 0011](../adr/0011-federation-participation-conditions.md)）
 - アカウント ID は Ed25519 公開鍵の did:key（[ADR 0008](../adr/0008-account-id-did-key.md)）
 - レートは連合全体で1つ（SmashHubレート）。インスタンスごとのレートは設けない（[レーティング](../domain/rating.md)）
 
