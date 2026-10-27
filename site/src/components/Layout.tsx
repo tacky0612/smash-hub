@@ -99,14 +99,15 @@ function GitHubLink({ compact = false }: { compact?: boolean }) {
   );
 }
 
-/** プロジェクトの目印（公式の意匠に寄せない、ノードとつながりの抽象図形）。 */
+/** プロジェクトのロゴ（Smash-hub の頭文字 SH）。public/favicon.svg と同じ形。公式の意匠に寄せない。 */
 function Mark() {
   return (
     <svg viewBox="0 0 32 32" className="h-7 w-7" aria-hidden>
-      <circle cx="8" cy="9" r="4" className="fill-indigo-500" />
-      <circle cx="24" cy="9" r="4" className="fill-indigo-500" />
-      <circle cx="16" cy="24" r="4" className="fill-amber-500" />
-      <path d="M8 9L24 9L16 24Z" className="fill-none stroke-slate-400" strokeWidth="2" />
+      <rect width="32" height="32" rx="7" className="fill-indigo-600" />
+      <g fill="none" stroke="#fff" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14.2 11.2C13.6 9.4 12 8.6 10.3 8.6 8.2 8.6 6.7 9.9 6.7 11.6c0 1.8 1.4 2.6 3.6 3.3 2.4.8 4 1.6 4 3.8 0 2-1.7 3.4-4 3.4-1.9 0-3.4-.9-4-2.7" />
+        <path d="M18.6 8.8v14.4M26.2 8.8v14.4M18.6 16h7.6" />
+      </g>
     </svg>
   );
 }
