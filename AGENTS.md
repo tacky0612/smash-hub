@@ -27,6 +27,7 @@ Smash-hub は、大乱闘スマッシュブラザーズ SPECIAL の対戦マッ�
 | 結合テスト（PostgreSQL を Docker で起動） | `make test-integration` |
 | E2E テスト（2つのインスタンスを Docker で起動し、連合での対戦の流れを検証） | `make test-e2e` |
 | フロントエンドの型チェックとビルド | `make test-frontend` |
+| 紹介サイト（GitHub Pages）の型チェックとビルド | `make test-site` |
 | ドキュメントのチェック | `python3 .claude/skills/docs-check/scripts/check_docs.py` |
 
 コードを変更したら、関係するテストを実行してから報告してください。Go のコードは `gofmt` を通してください。
@@ -57,6 +58,7 @@ docs/                     設計・ポリシー・ロードマップ（日本語
   operations/             運用者向け（約束事・デプロイ方式）
   adr/                    設計判断の記録
 frontend/                 Web UI（React SPA）
+site/                     連合プロトコルの紹介サイト（React + Tailwind CSS、GitHub Pages）
 backend/                  クリーンアーキテクチャ + DDD のモジュラーモノリス（Go）
 compose.yaml / Makefile   ローカル環境と起動・テストのコマンド
 ```
@@ -71,7 +73,7 @@ compose.yaml / Makefile   ローカル環境と起動・テストのコマンド
 - リンクは相対パスで書く。
 - **重要な設計判断は ADR にする。** [docs/adr/0000-template.md](docs/adr/0000-template.md) をコピーし連番を振り、[docs/adr/README.md](docs/adr/README.md) の一覧に追加する。既存の ADR は書き換えず、新しい ADR で置き換える（`Superseded by NNNN`）。
 - **ドキュメントを追加・移動・削除したら** [docs/README.md](docs/README.md) の目次を更新する。
-- 1つの事実は1か所に書き、他の場所からはリンクする。同じ内容を複数箇所に書いた場合は、すべてを揃えて更新する（例: 個人情報の方針は policy.md・security/・server-covenant.md・README.md に現れる）。
+- 1つの事実は1か所に書き、他の場所からはリンクする。同じ内容を複数箇所に書いた場合は、すべてを揃えて更新する（例: 個人情報の方針は policy.md・security/・server-covenant.md・README.md に現れる）。紹介サイト（`site/`）はドキュメントの要約なので、要約した元のドキュメントを変えたらサイトも揃える（→ [site/README.md](site/README.md)）。
 - ドキュメントを変更したら **`docs-check` スキル** で整合性とリンク切れを確認する。スクリプトだけなら `python3 .claude/skills/docs-check/scripts/check_docs.py` で実行できる。
 
 ## バックエンドの規約

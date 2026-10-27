@@ -106,6 +106,7 @@ smash-hub/
 ├── compose.yaml       ローカル環境（Docker Compose）
 ├── Makefile           起動・テストのコマンド
 ├── frontend/          Web UI（React SPA）
+├── site/              連合プロトコルの紹介サイト（GitHub Pages。main への push で自動デプロイ）
 └── backend/           対戦募集・結果報告・レーティング・アカウント管理・サーバー間連携（Go）
 ```
 

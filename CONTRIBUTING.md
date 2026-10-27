@@ -60,6 +60,7 @@ make test-unit         # バックエンドの単体テスト
 make test-integration  # バックエンドの結合テスト（PostgreSQL を Docker で起動）
 make test-e2e          # E2E テスト（2つのインスタンスで、連合での対戦の流れを検証）
 make test-frontend     # フロントエンドの型チェックとビルド
+make test-site         # 紹介サイト（GitHub Pages）の型チェックとビルド
 ```
 
 - 2つのインスタンスは互いを連合先にしています。Instance1 と Instance2 にそれぞれ別の利用者でログインすると、インスタンスをまたいだ対戦と記録の複製を試せます。

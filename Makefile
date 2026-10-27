@@ -1,4 +1,4 @@
-.PHONY: up down logs test test-unit test-integration test-e2e test-frontend db-test-up db-test-down
+.PHONY: up down logs test test-unit test-integration test-e2e test-frontend test-site db-test-up db-test-down
 
 TEST_DATABASE_URL ?= postgres://test:test@localhost:55432/smashhub_test?sslmode=disable
 
@@ -17,7 +17,7 @@ logs:
 	docker compose logs -f backend1 backend2 web1 web2
 
 ## すべてのテスト
-test: test-unit test-integration test-frontend test-e2e
+test: test-unit test-integration test-frontend test-site test-e2e
 
 ## バックエンドの単体テスト（DB 不要）
 test-unit:
@@ -36,6 +36,10 @@ db-test-up:
 
 db-test-down:
 	docker compose --profile test rm -sf db-test
+
+## 紹介サイト（site/、GitHub Pages）の型チェックとビルド
+test-site:
+	cd site && npm ci && npm run build
 
 ## フロントエンドの型チェックとビルド
 test-frontend:
